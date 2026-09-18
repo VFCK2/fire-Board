@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v8</title>
+<title>Board v9</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -14,10 +14,16 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 .logo{font-size:20px;font-weight:800}.header-actions{display:flex;gap:7px}
 .header-btn,.back-btn{border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.09);color:#fff;border-radius:9px;padding:8px 11px;font-size:13px}
 .main,.admin-main{max-width:760px;margin:auto;padding:17px 13px 40px}
-.page-title{font-size:24px;font-weight:800;margin:3px 2px 5px}.page-subtitle{display:none}
+.page-title{font-size:24px;font-weight:800;margin:3px 2px 5px}
+.user-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}
+.user-title-row .page-title{margin:3px 2px 0}
+.admin-entry{border:1px solid #c5ccd6;background:#fff;color:#4b5666;border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(20,30,45,.06)}
+.admin-entry:active{transform:scale(.97)}
+.page-subtitle{display:none}
 .notice-list{display:flex;flex-direction:column;gap:12px}
 .notice-card{background:#fff;border:1px solid #d9dfe7;border-radius:16px;padding:15px;box-shadow:0 3px 10px rgba(20,30,45,.07)}
-.notice-card{cursor:pointer;overflow:hidden}
+.notice-card{overflow:hidden}
+.notice-summary-btn{display:block;width:100%;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;color:inherit}
 .notice-card:active{transform:scale(.995)}
 .notice-summary{display:flex;align-items:center;gap:10px}
 .notice-summary-main{min-width:0;flex:1}
@@ -59,7 +65,10 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 
 <div id="userScreen">
 <main class="main">
-<h1 class="page-title">VFC Board</h1>
+<div class="user-title-row">
+  <h1 class="page-title">VFC Board</h1>
+  <button class="admin-entry" onclick="showAdminLogin()">管理</button>
+</div>
 <div id="noticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
 </main>
 </div>
@@ -190,6 +199,7 @@ async function loadUserNotices(){
 
 function renderUserNotices(arr){
   const list=document.getElementById("noticeList");
+
   if(!arr.length){
     list.innerHTML='<div class="empty">現在、お知らせはありません。</div>';
     return;
@@ -222,6 +232,7 @@ function renderUserNotices(arr){
   list.innerHTML=sorted.map((n,i)=>{
     const urgent=!!n.soon;
     const expired=n.due && daysUntil(n.due)<0;
+
     let badges="";
     if(n.important) badges+='<span class="badge badge-important">重要</span>';
     if(urgent) badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
@@ -235,25 +246,36 @@ function renderUserNotices(arr){
       ? `<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):""}</div>`
       : "";
 
-    return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}" onclick="toggleNotice(this)">
-      <div class="notice-summary">
-        <div class="notice-summary-main">
-          <div class="notice-top" style="margin-bottom:4px">
-            <div class="notice-date">${esc(n.date||"")}</div>
-            <div class="notice-status">${badges}</div>
-          </div>
-          <h2 class="notice-title" style="margin-bottom:0">${esc(n.title)}</h2>
-          
-        </div>
-        <div class="notice-chevron">⌄</div>
-      </div>
-      <div class="notice-details">
+    return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}">
+      <button type="button" class="notice-summary-btn" onclick="toggleNoticeById('notice-detail-${i}',this)">
+        <span class="notice-summary">
+          <span class="notice-summary-main">
+            <span class="notice-top" style="margin-bottom:4px">
+              <span class="notice-date">${esc(n.date||"")}</span>
+              <span class="notice-status">${badges}</span>
+            </span>
+            <span class="notice-title" style="display:block;margin-bottom:0">${esc(n.title)}</span>
+          </span>
+          <span class="notice-chevron" aria-hidden="true">⌄</span>
+        </span>
+      </button>
+
+      <div id="notice-detail-${i}" class="notice-details">
         ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}
         ${file}
         ${period}
       </div>
     </article>`;
   }).join("");
+}
+
+function toggleNoticeById(id,btn){
+  const detail=document.getElementById(id);
+  if(!detail)return;
+  const card=btn.closest(".notice-card");
+  const isOpen=card.classList.toggle("open");
+  detail.style.display=isOpen?"block":"none";
+  btn.setAttribute("aria-expanded",isOpen?"true":"false");
 }
 
 async function openPrivateFile(e,id,name){
