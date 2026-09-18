@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v3</title>
+<title>Board v4</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -59,6 +59,42 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 .form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}.check{display:flex;align-items:center;gap:7px;font-size:13px;margin-top:12px}.check input{width:18px;height:18px}
 .toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);z-index:100;max-width:90%;background:#172033;color:#fff;border-radius:10px;padding:11px 16px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
 @media(max-width:480px){.header-inner{min-height:58px;padding:8px 12px}.logo{font-size:18px}.main,.admin-main{padding:14px 10px 30px}.page-title{font-size:22px}.notice-card{border-radius:14px;padding:13px}.notice-title{font-size:18px}.notice-body{font-size:14px}.form-grid{grid-template-columns:1fr}}
+
+.file-preview{
+  margin-top:14px;
+  width:100%;
+  overflow:hidden;
+  border-radius:12px;
+}
+.file-preview img{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:70vh;
+  object-fit:contain;
+  background:#f3f4f6;
+}
+.file-preview iframe{
+  display:block;
+  width:100%;
+  height:70vh;
+  min-height:420px;
+  border:0;
+  background:#fff;
+}
+.file-preview-label{
+  padding:8px 2px 0;
+  font-size:12px;
+  color:#667085;
+  word-break:break-all;
+}
+.file-error{
+  padding:12px;
+  border-radius:10px;
+  background:#fff1f1;
+  color:#b42318;
+  font-size:13px;
+}
 </style>
 </head>
 <body>
@@ -150,9 +186,10 @@ function showAdminScreen(){showOnly("adminScreen");loadAdminNotices()}
 async function requestGet(params){
   const url=new URL(GAS_URL);
   Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+  url.searchParams.set("_",Date.now().toString());
   const r=await fetch(url.toString(),{cache:"no-store"});
-  if(!r.ok)throw new Error("HTTP "+r.status);
-  return r.json();
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return await r.json();
 }
 async function requestPost(data){
   const r=await fetch(GAS_URL,{
@@ -262,39 +299,72 @@ async function openPrivateFile(e,id,name){
 
 async function loadInlineFile(preview){
   if(preview.dataset.loading==="1" || preview.dataset.loaded==="1") return;
+
   preview.dataset.loading="1";
   preview.style.display="block";
   preview.innerHTML='<div class="file-preview-label">添付ファイルを読み込み中…</div>';
+
   try{
-    const res=await requestGet({action:"file",id:preview.dataset.fileId,token:getToken()});
-    if(!res.ok) throw new Error(res.message||"ファイル取得失敗");
-    const mime=(res.mimeType||preview.dataset.mime||"").toLowerCase();
-    const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
-    const blob=new Blob([bytes],{type:mime||"application/octet-stream"});
-    const url=URL.createObjectURL(blob);
+    const res=await requestGet({
+      action:"file",
+      id:preview.dataset.fileId,
+      token:getToken()
+    });
+
+    if(!res || !res.ok || !res.data){
+      throw new Error((res&&res.message)||"ファイル取得失敗");
+    }
+
+    const mime=(res.mimeType||"").toLowerCase();
+    const name=(res.fileName||preview.dataset.fileName||"添付ファイル");
+    const lowerName=name.toLowerCase();
+
     preview.innerHTML="";
-    if(mime.startsWith("image/")){
+
+    if(mime.indexOf("image/")===0 || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(lowerName)){
       const img=document.createElement("img");
-      img.src=url; img.alt=res.fileName||"添付画像";
-      img.onload=()=>URL.revokeObjectURL(url);
+      const imageMime=mime.indexOf("image/")===0 ? mime :
+        (lowerName.endsWith(".png") ? "image/png" :
+         lowerName.endsWith(".gif") ? "image/gif" :
+         lowerName.endsWith(".webp") ? "image/webp" :
+         lowerName.endsWith(".bmp") ? "image/bmp" : "image/jpeg");
+
+      // GASから返るBase64を、そのままdata URLとして表示
+      img.src="data:"+imageMime+";base64,"+res.data;
+      img.alt=name;
+      img.loading="lazy";
       preview.appendChild(img);
-    }else if(mime==="application/pdf" || (res.fileName||"").toLowerCase().endsWith(".pdf")){
+
+    }else if(mime==="application/pdf" || lowerName.endsWith(".pdf")){
+      // PDFもBase64からBlob URLを作成して表示
+      const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
+      const blob=new Blob([bytes],{type:"application/pdf"});
+      const url=URL.createObjectURL(blob);
+
       const iframe=document.createElement("iframe");
-      iframe.src=url; iframe.title=res.fileName||"PDF";
+      iframe.src=url;
+      iframe.title=name;
+      iframe.loading="lazy";
       preview.appendChild(iframe);
+
+      // ページを離れるまで使えるよう、URLは即時 revoke しない
+      preview.dataset.blobUrl=url;
+
     }else{
-      URL.revokeObjectURL(url);
       preview.innerHTML='<div class="file-error">画像またはPDFのみ表示できます。</div>';
       return;
     }
+
     const label=document.createElement("div");
     label.className="file-preview-label";
-    label.textContent=res.fileName||"添付ファイル";
+    label.textContent=name;
     preview.appendChild(label);
+
     preview.dataset.loaded="1";
+
   }catch(e){
-    console.error(e);
-    preview.innerHTML='<div class="file-error">添付ファイルを表示できませんでした。</div>';
+    console.error("添付ファイル表示エラー:",e);
+    preview.innerHTML='<div class="file-error">添付ファイルを表示できませんでした。<br><small>'+esc(e.message||"通信エラー")+'</small></div>';
   }finally{
     delete preview.dataset.loading;
   }
