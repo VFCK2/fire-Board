@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v6</title>
+<title>Board</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -134,14 +134,94 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
   font-size:13px;
   font-weight:700;
 }
-</style>
+
+.user-header{
+  background:#172033;
+  color:#fff;
+  width:100%;
+}
+.user-header-inner{
+  max-width:760px;
+  min-height:62px;
+  margin:0 auto;
+  padding:9px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-sizing:border-box;
+}
+.user-header .page-title{
+  color:#fff;
+  margin:0;
+}
+.user-header .admin-entry{
+  color:#fff;
+  border-color:rgba(255,255,255,.45);
+  background:rgba(255,255,255,.08);
+}
+.attachment-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:5px;
+  font-size:14px;
+  line-height:1;
+  vertical-align:middle;
+}
+.file-download-box{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 0 0;
+}
+.file-download-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:42px;
+  height:38px;
+  padding:0 7px;
+  border-radius:8px;
+  background:#172033;
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+}
+.file-download-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:0 13px;
+  border-radius:9px;
+  background:#172033;
+  color:#fff;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:700;
+}
+.file-download-loading{
+  padding:10px 0 0;
+  font-size:13px;
+  color:#667085;
+}
+@media(max-width:480px){
+.user-header-inner{min-height:56px;padding:8px 12px}
+.user-header .page-title{font-size:21px}
+}</style>
 </head>
 <body>
 
 <div id="userScreen">
+<header class="user-header">
+  <div class="user-header-inner">
+    <h1 class="page-title">VFC Board</h1>
+    <button class="admin-entry" onclick="showAdminLogin()">管理</button>
+  </div>
+</header>
 <main class="main">
-<div class="user-title-row">
-  <h1 class="page-title">VFC Board</h1>
+<div class="user-title-row" style="display:none">
+  <h1 class="page-title">お知らせ</h1>
   <button class="admin-entry" onclick="showAdminLogin()">管理</button>
 </div>
 <div id="noticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
@@ -299,6 +379,7 @@ function renderUserNotices(arr){
     const urgent=!!n.soon,expired=n.due&&daysUntil(n.due)<0;
     let badges="";
     if(n.important)badges+='<span class="badge badge-important">重要</span>';
+    if(n.fileId)badges+='<span class="attachment-badge" title="添付ファイルあり" aria-label="添付ファイルあり">📎</span>';
     if(urgent)badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
     if(expired)badges+='<span class="badge badge-expired">期限終了</span>';
     const preview=n.fileId?`<div id="file-preview-${i}" class="file-preview" data-file-id="${esc(n.fileId)}" data-file-name="${esc(n.fileName||"添付ファイル")}" data-mime="${esc(n.mimeType||"")}" style="display:none"></div>`:"";
@@ -349,7 +430,7 @@ async function loadInlineFile(preview){
 
   preview.dataset.loading="1";
   preview.style.display="block";
-  preview.innerHTML='<div class="file-preview-label" style="display:block">添付ファイルを読み込み中…</div>';
+  preview.innerHTML='<div class="file-download-loading">添付ファイルを準備中…</div>';
 
   try{
     const res=await requestGet({
@@ -362,59 +443,37 @@ async function loadInlineFile(preview){
       throw new Error((res&&res.message)||"ファイル取得失敗");
     }
 
-    const mime=(res.mimeType||"").toLowerCase();
-    const name=(res.fileName||preview.dataset.fileName||"添付ファイル");
-    const lowerName=name.toLowerCase();
+    const mime=(res.mimeType||"application/octet-stream").toLowerCase();
+    const name=res.fileName||preview.dataset.fileName||"添付ファイル";
+    const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
+    const blob=new Blob([bytes],{type:mime});
+    const url=URL.createObjectURL(blob);
 
-    preview.innerHTML="";
+    const wrap=document.createElement("div");
+    wrap.className="file-download-box";
 
-    if(mime.indexOf("image/")===0 || /\.(jpg|jpeg|png|gif|webp|bmp)$/i.test(lowerName)){
-      const img=document.createElement("img");
-      const imageMime=mime.indexOf("image/")===0 ? mime :
-        (lowerName.endsWith(".png") ? "image/png" :
-         lowerName.endsWith(".gif") ? "image/gif" :
-         lowerName.endsWith(".webp") ? "image/webp" :
-         lowerName.endsWith(".bmp") ? "image/bmp" : "image/jpeg");
+    const icon=document.createElement("span");
+    icon.className="file-download-icon";
+    icon.textContent=mime==="application/pdf"||/\.pdf$/i.test(name)?"PDF":"画像";
 
-      img.src="data:"+imageMime+";base64,"+res.data;
-      img.alt=name;
-      img.loading="lazy";
-      preview.appendChild(img);
+    const a=document.createElement("a");
+    a.href=url;
+    a.download=name;
+    a.className="file-download-btn";
+    a.textContent="添付ファイルをダウンロード";
+    a.addEventListener("click",()=>{
+      setTimeout(()=>URL.revokeObjectURL(url),60000);
+    });
 
-    }else if(mime==="application/pdf" || lowerName.endsWith(".pdf")){
-      const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
-      const blob=new Blob([bytes],{type:"application/pdf"});
-      const url=URL.createObjectURL(blob);
-
-      const wrap=document.createElement("div");
-      wrap.className="pdf-download-box";
-
-      const icon=document.createElement("span");
-      icon.className="pdf-download-icon";
-      icon.textContent="PDF";
-
-      const a=document.createElement("a");
-      a.href=url;
-      a.download=name;
-      a.className="pdf-download-btn";
-      a.textContent="PDFをダウンロード";
-      a.addEventListener("click",()=>setTimeout(()=>URL.revokeObjectURL(url),60000));
-
-      wrap.appendChild(icon);
-      wrap.appendChild(a);
-      preview.appendChild(wrap);
-      preview.dataset.blobUrl=url;
-
-    }else{
-      preview.innerHTML='<div class="file-error">画像またはPDFのみ表示できます。</div>';
-      return;
-    }
+    wrap.appendChild(icon);
+    wrap.appendChild(a);
+    preview.appendChild(wrap);
 
     preview.dataset.loaded="1";
 
   }catch(e){
-    console.error("添付ファイル表示エラー:",e);
-    preview.innerHTML='<div class="file-error">添付ファイルを表示できませんでした。<br><small>'+esc(e.message||"通信エラー")+'</small></div>';
+    console.error("添付ファイル取得エラー:",e);
+    preview.innerHTML='<div class="file-error">添付ファイルを取得できませんでした。</div>';
   }finally{
     delete preview.dataset.loading;
   }
