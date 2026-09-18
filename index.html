@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v7</title>
+<title>Board v8</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -25,7 +25,7 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 .notice-card.open .notice-chevron{transform:rotate(180deg);background:#e5e9ee}
 .notice-details{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #e2e6eb}
 .notice-card.open .notice-details{display:block}
-.notice-hint{font-size:11px;color:#8993a1;margin-top:3px}
+
 
 .notice-card.urgent{background:#fff8df;border:2px solid #efc94d;box-shadow:0 4px 14px rgba(210,165,35,.14)}
 .notice-card.expired{opacity:.68}
@@ -58,12 +58,8 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 <body>
 
 <div id="userScreen">
-<header class="header"><div class="header-inner">
-<div class="logo">お知らせ</div>
-<div class="header-actions"><button class="header-btn" onclick="showAdminLogin()">管理</button></div>
-</div></header>
 <main class="main">
-<h1 class="page-title">お知らせ</h1>
+<h1 class="page-title">VFC Board</h1>
 <div id="noticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
 </main>
 </div>
@@ -247,7 +243,7 @@ function renderUserNotices(arr){
             <div class="notice-status">${badges}</div>
           </div>
           <h2 class="notice-title" style="margin-bottom:0">${esc(n.title)}</h2>
-          <div class="notice-hint">タップして詳細を表示</div>
+          
         </div>
         <div class="notice-chevron">⌄</div>
       </div>
