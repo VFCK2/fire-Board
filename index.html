@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v6</title>
+<title>Board v7</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -14,7 +14,7 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 .logo{font-size:20px;font-weight:800}.header-actions{display:flex;gap:7px}
 .header-btn,.back-btn{border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.09);color:#fff;border-radius:9px;padding:8px 11px;font-size:13px}
 .main,.admin-main{max-width:760px;margin:auto;padding:17px 13px 40px}
-.page-title{font-size:24px;font-weight:800;margin:3px 2px 5px}.page-subtitle{font-size:13px;color:#697386;margin:0 2px 17px}
+.page-title{font-size:24px;font-weight:800;margin:3px 2px 5px}.page-subtitle{display:none}
 .notice-list{display:flex;flex-direction:column;gap:12px}
 .notice-card{background:#fff;border:1px solid #d9dfe7;border-radius:16px;padding:15px;box-shadow:0 3px 10px rgba(20,30,45,.07)}
 .notice-card{cursor:pointer;overflow:hidden}
@@ -64,7 +64,6 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 </div></header>
 <main class="main">
 <h1 class="page-title">お知らせ</h1>
-<p class="page-subtitle">消防団からのお知らせ</p>
 <div id="noticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
 </main>
 </div>
@@ -200,7 +199,31 @@ function renderUserNotices(arr){
     return;
   }
 
-  list.innerHTML=arr.map((n,i)=>{
+  /*
+   * 表示順
+   * 1. 期日3日前〜当日は最上段
+   * 2. その中では期日が近い順
+   * 3. それ以外は掲載日が新しい順
+   */
+  const sorted=[...arr].sort((a,b)=>{
+    const au=!!a.soon, bu=!!b.soon;
+    if(au && !bu) return -1;
+    if(!au && bu) return 1;
+
+    if(au && bu){
+      const ad=a.due||"9999-12-31";
+      const bd=b.due||"9999-12-31";
+      if(ad!==bd) return ad<bd ? -1 : 1;
+    }
+
+    const ad=a.date||"0000-00-00";
+    const bd=b.date||"0000-00-00";
+    if(ad!==bd) return ad>bd ? -1 : 1;
+
+    return (b.registered||0)-(a.registered||0);
+  });
+
+  list.innerHTML=sorted.map((n,i)=>{
     const urgent=!!n.soon;
     const expired=n.due && daysUntil(n.due)<0;
     let badges="";
@@ -228,7 +251,6 @@ function renderUserNotices(arr){
         </div>
         <div class="notice-chevron">⌄</div>
       </div>
-
       <div class="notice-details">
         ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}
         ${file}
@@ -236,10 +258,6 @@ function renderUserNotices(arr){
       </div>
     </article>`;
   }).join("");
-}
-
-function toggleNotice(card){
-  card.classList.toggle("open");
 }
 
 async function openPrivateFile(e,id,name){
