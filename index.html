@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v2</title>
+<title>Board v3</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -42,11 +42,7 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 .notice-title{font-size:19px;line-height:1.4;font-weight:800;margin:0 0 9px;color:#172033}
 .notice-body{font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
 .notice-period{margin-top:12px;padding-top:10px;border-top:1px solid #e6e9ee;color:#687385;font-size:12px}
-.file-preview{margin-top:12px;border:1px solid #dce2e9;border-radius:12px;background:#f5f7fa;overflow:hidden}
-.file-preview img{display:block;width:100%;height:auto;max-height:70vh;object-fit:contain;background:#fff}
-.file-preview iframe{display:block;width:100%;height:70vh;min-height:420px;border:0;background:#fff}
-.file-preview-label{padding:9px 11px;font-size:12px;font-weight:700;color:#596577;background:#f5f7fa}
-.file-error{padding:14px;font-size:13px;color:#b42318;text-align:center}
+.file-link{display:flex;align-items:center;gap:8px;text-decoration:none;color:#2457b8;background:#f2f6ff;border:1px solid #d9e4ff;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;margin-top:12px}
 .loading{text-align:center;padding:55px 15px;color:#687385;font-size:14px}.spinner{width:28px;height:28px;margin:0 auto 12px;border:3px solid #dce1e8;border-top-color:#172033;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
 .empty,.panel,.form-card{background:#fff;border:1px solid #d9dfe7;border-radius:16px;box-shadow:0 3px 10px rgba(20,30,45,.06)}
 .empty{text-align:center;padding:35px 20px;color:#687385}
@@ -154,15 +150,9 @@ function showAdminScreen(){showOnly("adminScreen");loadAdminNotices()}
 async function requestGet(params){
   const url=new URL(GAS_URL);
   Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
-  const controller=new AbortController();
-  const timer=setTimeout(()=>controller.abort(),15000);
-  try{
-    const r=await fetch(url.toString(),{cache:"no-store",signal:controller.signal});
-    if(!r.ok)throw new Error("HTTP "+r.status);
-    return await r.json();
-  }finally{
-    clearTimeout(timer);
-  }
+  const r=await fetch(url.toString(),{cache:"no-store"});
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return r.json();
 }
 async function requestPost(data){
   const r=await fetch(GAS_URL,{
@@ -194,105 +184,54 @@ async function loadUserNotices(){
   const list=document.getElementById("noticeList");
   const token=getToken();
   if(!token){showRegisterScreen();return}
-
-  // 一覧はまずキャッシュを表示。通信中も画面を止めない。
-  const cached=localStorage.getItem("notice_list_cache");
-  if(cached){
-    try{
-      const data=JSON.parse(cached);
-      if(Array.isArray(data)) renderUserNotices(data);
-    }catch(e){}
-  }else{
-    list.innerHTML='<div class="loading"><div class="spinner"></div>お知らせを読み込み中…</div>';
-  }
-
+  list.innerHTML='<div class="loading"><div class="spinner"></div>読み込み中…</div>';
   try{
     const res=await requestGet({action:"list",token});
     if(!res.ok){
-      if((res.message||"").includes("登録されていません")){
-        localStorage.removeItem(DEVICE_KEY);
-        localStorage.removeItem("notice_list_cache");
-        showRegisterScreen();
-        return;
-      }
+      if((res.message||"").includes("登録されていません")){localStorage.removeItem(DEVICE_KEY);showRegisterScreen();return}
       throw new Error(res.message||"取得失敗");
     }
-    const notices=res.notices||[];
-    localStorage.setItem("notice_list_cache",JSON.stringify(notices));
-    renderUserNotices(notices);
+    renderUserNotices(res.notices||[]);
   }catch(e){
-    if(!cached){
-      list.innerHTML='<div class="empty">お知らせを取得できませんでした。<br><button class="secondary-btn" style="max-width:180px" onclick="loadUserNotices()">再読み込み</button></div>';
-    }
+    list.innerHTML='<div class="empty">お知らせを取得できませんでした。<br><button class="secondary-btn" style="max-width:180px" onclick="loadUserNotices()">再読み込み</button></div>';
   }
 }
 
 function renderUserNotices(arr){
   const list=document.getElementById("noticeList");
-
   if(!arr.length){
     list.innerHTML='<div class="empty">現在、お知らせはありません。</div>';
     return;
   }
-
   const sorted=[...arr].sort((a,b)=>{
-    const au=!!a.soon, bu=!!b.soon;
-    if(au && !bu) return -1;
-    if(!au && bu) return 1;
-
-    if(au && bu){
-      const ad=a.due||"9999-12-31";
-      const bd=b.due||"9999-12-31";
-      if(ad!==bd) return ad<bd ? -1 : 1;
-    }
-
-    const ad=a.date||"0000-00-00";
-    const bd=b.date||"0000-00-00";
-    if(ad!==bd) return ad>bd ? -1 : 1;
-
-    return (b.registered||0)-(a.registered||0);
+    const au=!!a.soon,bu=!!b.soon;
+    if(au&&!bu)return -1;if(!au&&bu)return 1;
+    if(au&&bu){const ad=a.due||"9999-12-31",bd=b.due||"9999-12-31";if(ad!==bd)return ad<bd?-1:1;}
+    const ad=a.date||"0000-00-00",bd=b.date||"0000-00-00";
+    if(ad!==bd)return ad>bd?-1:1;
+    return 0;
   });
-
   list.innerHTML=sorted.map((n,i)=>{
-    const urgent=!!n.soon;
-    const expired=n.due && daysUntil(n.due)<0;
-
+    const urgent=!!n.soon,expired=n.due&&daysUntil(n.due)<0;
     let badges="";
-    if(n.important) badges+='<span class="badge badge-important">重要</span>';
-    if(urgent) badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
-    if(expired) badges+='<span class="badge badge-expired">期限終了</span>';
-
-    const preview=n.fileId
-      ? `<div id="file-preview-${i}" class="file-preview" data-file-id="${esc(n.fileId)}" data-file-name="${esc(n.fileName||"添付ファイル")}" data-mime="${esc(n.mimeType||"")}" style="display:none"></div>`
-      : "";
-
-    const period=(n.date||n.due)
-      ? `<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):""}</div>`
-      : "";
-
+    if(n.important)badges+='<span class="badge badge-important">重要</span>';
+    if(urgent)badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
+    if(expired)badges+='<span class="badge badge-expired">期限終了</span>';
+    const preview=n.fileId?`<div id="file-preview-${i}" class="file-preview" data-file-id="${esc(n.fileId)}" data-file-name="${esc(n.fileName||"添付ファイル")}" data-mime="${esc(n.mimeType||"")}" style="display:none"></div>`:"";
+    const period=(n.date||n.due)?`<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):""}</div>`:"";
     return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}">
       <button type="button" class="notice-summary-btn" onclick="toggleNoticeById('notice-detail-${i}',this,${n.fileId?`'file-preview-${i}'`:"null"})">
-        <span class="notice-summary">
-          <span class="notice-summary-main">
-            <span class="notice-top" style="margin-bottom:4px">
-              <span class="notice-date">${esc(n.date||"")}</span>
-              <span class="notice-status">${badges}</span>
-            </span>
-            <span class="notice-title" style="display:block;margin-bottom:0">${esc(n.title)}</span>
-          </span>
-          <span class="notice-chevron" aria-hidden="true">⌄</span>
-        </span>
+        <span class="notice-summary"><span class="notice-summary-main">
+          <span class="notice-top" style="margin-bottom:4px"><span class="notice-date">${esc(n.date||"")}</span><span class="notice-status">${badges}</span></span>
+          <span class="notice-title" style="display:block;margin-bottom:0">${esc(n.title)}</span>
+        </span><span class="notice-chevron" aria-hidden="true">⌄</span></span>
       </button>
-
       <div id="notice-detail-${i}" class="notice-details">
-        ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}
-        ${preview}
-        ${period}
+        ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}${preview}${period}
       </div>
     </article>`;
   }).join("");
 }
-
 function toggleNoticeById(id,btn,previewId){
   const detail=document.getElementById(id);
   if(!detail)return;
@@ -300,57 +239,58 @@ function toggleNoticeById(id,btn,previewId){
   const isOpen=card.classList.toggle("open");
   detail.style.display=isOpen?"block":"none";
   btn.setAttribute("aria-expanded",isOpen?"true":"false");
-
   if(isOpen && previewId){
     const preview=document.getElementById(previewId);
-    if(preview && preview.dataset.loaded!=="1" && preview.dataset.loading!=="1"){
-      loadInlineFile(preview);
-    }
+    if(preview) loadInlineFile(preview);
   }
 }
 
-async function loadInlineFile(preview){
-  const cacheKey="notice_file_cache_"+preview.dataset.fileId;
-  const cached=sessionStorage.getItem(cacheKey);
+async function openPrivateFile(e,id,name){
+  e.preventDefault();
+  e.stopPropagation();
+  try{
+    showToast("ファイルを開いています…");
+    const res=await requestGet({action:"file",id,token:getToken()});
+    if(!res.ok)throw new Error(res.message||"ファイル取得失敗");
+    const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
+    const blob=new Blob([bytes],{type:res.mimeType||"application/octet-stream"});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a");a.href=url;a.download=res.fileName||name;a.target="_blank";a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){showToast("ファイルを開けませんでした")}
+}
 
+async function loadInlineFile(preview){
+  if(preview.dataset.loading==="1" || preview.dataset.loaded==="1") return;
   preview.dataset.loading="1";
   preview.style.display="block";
-
-  if(cached){
-    try{
-      const c=JSON.parse(cached);
-      renderCachedFile(preview,c);
-      preview.dataset.loaded="1";
-      delete preview.dataset.loading;
-      return;
-    }catch(e){}
-  }
-
   preview.innerHTML='<div class="file-preview-label">添付ファイルを読み込み中…</div>';
-
   try{
-    const res=await requestGet({
-      action:"file",
-      id:preview.dataset.fileId,
-      token:getToken()
-    });
-
+    const res=await requestGet({action:"file",id:preview.dataset.fileId,token:getToken()});
     if(!res.ok) throw new Error(res.message||"ファイル取得失敗");
-
-    const data={
-      fileName:res.fileName||preview.dataset.fileName||"添付ファイル",
-      mimeType:(res.mimeType||preview.dataset.mime||"").toLowerCase(),
-      data:res.data
-    };
-
-    // セッション中は再取得しない。大きすぎるデータは保存を避ける。
-    try{
-      if(data.data && data.data.length < 6*1024*1024){
-        sessionStorage.setItem(cacheKey,JSON.stringify(data));
-      }
-    }catch(e){}
-
-    renderCachedFile(preview,data);
+    const mime=(res.mimeType||preview.dataset.mime||"").toLowerCase();
+    const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
+    const blob=new Blob([bytes],{type:mime||"application/octet-stream"});
+    const url=URL.createObjectURL(blob);
+    preview.innerHTML="";
+    if(mime.startsWith("image/")){
+      const img=document.createElement("img");
+      img.src=url; img.alt=res.fileName||"添付画像";
+      img.onload=()=>URL.revokeObjectURL(url);
+      preview.appendChild(img);
+    }else if(mime==="application/pdf" || (res.fileName||"").toLowerCase().endsWith(".pdf")){
+      const iframe=document.createElement("iframe");
+      iframe.src=url; iframe.title=res.fileName||"PDF";
+      preview.appendChild(iframe);
+    }else{
+      URL.revokeObjectURL(url);
+      preview.innerHTML='<div class="file-error">画像またはPDFのみ表示できます。</div>';
+      return;
+    }
+    const label=document.createElement("div");
+    label.className="file-preview-label";
+    label.textContent=res.fileName||"添付ファイル";
+    preview.appendChild(label);
     preview.dataset.loaded="1";
   }catch(e){
     console.error(e);
@@ -360,37 +300,6 @@ async function loadInlineFile(preview){
   }
 }
 
-function renderCachedFile(preview,data){
-  const mime=data.mimeType||"";
-  const bytes=Uint8Array.from(atob(data.data),c=>c.charCodeAt(0));
-  const blob=new Blob([bytes],{type:mime||"application/octet-stream"});
-  const url=URL.createObjectURL(blob);
-
-  preview.innerHTML="";
-
-  if(mime.startsWith("image/")){
-    const img=document.createElement("img");
-    img.src=url;
-    img.alt=data.fileName;
-    img.loading="lazy";
-    img.onload=()=>URL.revokeObjectURL(url);
-    preview.appendChild(img);
-  }else if(mime==="application/pdf" || data.fileName.toLowerCase().endsWith(".pdf")){
-    const iframe=document.createElement("iframe");
-    iframe.src=url;
-    iframe.title=data.fileName;
-    preview.appendChild(iframe);
-  }else{
-    URL.revokeObjectURL(url);
-    preview.innerHTML='<div class="file-error">画像またはPDFのみ表示できます。</div>';
-    return;
-  }
-
-  const label=document.createElement("div");
-  label.className="file-preview-label";
-  label.textContent=data.fileName;
-  preview.appendChild(label);
-}
 async function loginAdmin(){
   const pw=document.getElementById("adminCode").value.trim();
   const err=document.getElementById("adminError");err.textContent="";
