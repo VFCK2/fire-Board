@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+<meta name="theme-color" content="#b71c1c">
+<title>消防団 お知らせ</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f4f5f7;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
+header{position:sticky;top:0;z-index:10;background:#b71c1c;color:#fff;padding:14px 16px;box-shadow:0 2px 8px #0002}
+header h1{font-size:20px;margin:0}
+main{max-width:720px;margin:auto;padding:12px}
+.card{background:#fff;border-radius:14px;margin:10px 0;padding:14px;box-shadow:0 2px 8px #0001}
+.card.soon{border:2px solid #f57c00}
+.meta{font-size:12px;color:#777}
+.title{font-size:18px;font-weight:700;margin:5px 0}
+.badge{display:inline-block;background:#f57c00;color:#fff;border-radius:999px;padding:3px 8px;font-size:11px;margin-left:6px}
+.body{display:none;margin-top:12px;line-height:1.7;white-space:pre-wrap;border-top:1px solid #eee;padding-top:12px}
+.card.open .body{display:block}
+.attach{margin-top:12px}
+.attach button{border:0;border-radius:9px;padding:9px 12px;background:#eee}
+.empty{text-align:center;color:#777;padding:40px 10px}
+#registerOverlay{position:fixed;inset:0;background:#0008;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
+.modal{background:#fff;border-radius:16px;padding:22px;width:min(420px,100%);box-shadow:0 10px 40px #0005}
+.modal h2{margin-top:0}
+input,textarea,select{width:100%;padding:11px;border:1px solid #ccc;border-radius:9px;font-size:16px}
+button.primary{width:100%;padding:12px;border:0;border-radius:10px;background:#b71c1c;color:#fff;font-size:16px;font-weight:700}
+button.secondary{padding:9px 12px;border:0;border-radius:9px;background:#eee}
+#admin{display:none}
+.row{display:grid;gap:8px;margin:10px 0}
+.fileinfo{font-size:12px;color:#666;margin-top:5px}
+.small{font-size:12px;color:#777}
+</style>
+</head>
+<body>
+<header>
+  <h1>消防団 お知らせ</h1>
+</header>
+
+<main>
+  <section id="noticeList"></section>
+
+  <section id="admin" class="card">
+    <h2>管理者</h2>
+    <div class="row">
+      <input id="adminpw" type="password" placeholder="管理者パスワード">
+      <button class="primary" onclick="adminLogin()">管理画面を開く</button>
+    </div>
+    <div id="adminPanel" style="display:none">
+      <hr>
+      <h3>お知らせ登録・編集</h3>
+      <input type="hidden" id="editIndex">
+      <div class="row"><label>掲載日<input id="date" type="date"></label></div>
+      <div class="row"><label>期日<input id="due" type="date"></label></div>
+      <div class="row"><label>タイトル<input id="title"></label></div>
+      <div class="row"><label>本文<textarea id="body" rows="6"></textarea></label></div>
+      <div class="row"><label><input id="important" type="checkbox" style="width:auto"> 重要</label></div>
+      <div class="row">
+        <label>PDF / 画像
+          <input id="file" type="file" accept=".pdf,image/*">
+        </label>
+        <div id="fileinfo" class="fileinfo"></div>
+      </div>
+      <div class="row">
+        <button class="primary" onclick="saveNotice()">保存</button>
+        <button class="secondary" onclick="clearForm()">新規入力に戻す</button>
+      </div>
+      <div id="adminList"></div>
+    </div>
+  </section>
+</main>
+
+<div id="registerOverlay">
+  <div class="modal">
+    <h2>初回登録</h2>
+    <p>この端末を消防団のお知らせに登録します。</p>
+    <p class="small">登録は初回のみです。登録後はこの端末から自動的に利用できます。</p>
+    <input id="regcode" type="password" placeholder="登録コード">
+    <div style="height:12px"></div>
+    <button class="primary" onclick="registerDevice()">この端末を登録</button>
+    <p id="regmsg" class="small"></p>
+  </div>
+</div>
+
+<script>
+const GAS_URL = "ここにGASウェブアプリURLを入れる";
+const TOKEN_KEY = "fire_notice_device_token";
+
+let deviceToken = localStorage.getItem(TOKEN_KEY) || "";
+
+function api(url, options){
+  return fetch(url, options).then(r => {
+    if(!r.ok) throw new Error("通信エラー");
+    return r.json();
+  });
+}
+
+async function registerDevice(){
+  const code = document.getElementById("regcode").value.trim();
+  const msg = document.getElementById("regmsg");
+  if(!code){ msg.textContent="登録コードを入力してください。"; return; }
+  msg.textContent="登録中...";
+  try{
+    const r = await api(GAS_URL,{
+      method:"POST",
+      headers:{"Content-Type":"text/plain;charset=utf-8"},
+      body:JSON.stringify({action:"register",code})
+    });
+    if(!r.ok) throw new Error(r.message || "登録できませんでした");
+    deviceToken = r.token;
+    localStorage.setItem(TOKEN_KEY,deviceToken);
+    document.getElementById("registerOverlay").style.display="none";
+    loadNotices();
+  }catch(e){
+    msg.textContent=e.message || "登録に失敗しました。";
+  }
+}
+
+async function loadNotices(){
+  if(!deviceToken) return;
+  try{
+    const r = await api(GAS_URL+"?action=list&token="+encodeURIComponent(deviceToken));
+    if(!r.ok){
+      localStorage.removeItem(TOKEN_KEY);
+      deviceToken="";
+      document.getElementById("registerOverlay").style.display="flex";
+      return;
+    }
+    renderNotices(r.notices || []);
+  }catch(e){
+    document.getElementById("noticeList").innerHTML='<div class="empty">お知らせを取得できませんでした。</div>';
+  }
+}
+
+function renderNotices(list){
+  const root=document.getElementById("noticeList");
+  if(!list.length){
+    root.innerHTML='<div class="empty">現在、お知らせはありません。</div>';
+    return;
+  }
+  root.innerHTML=list.map((n,i)=>{
+    const soon=n.soon ? '<span class="badge">期日間近</span>':'';
+    const important=n.important ? '<span class="badge">重要</span>':'';
+    const file=n.fileId ? `<div class="attach"><button onclick="event.stopPropagation();openPrivateFile('${escapeAttr(n.fileId)}')">${escapeHtml(n.fileName || "添付資料を開く")}</button></div>`:"";
+    return `<article class="card ${n.soon?'soon':''}" onclick="this.classList.toggle('open')">
+      <div class="meta">${escapeHtml(n.date||"")}${n.due?'　期日：'+escapeHtml(n.due):''}</div>
+      <div class="title">${escapeHtml(n.title||"")}${soon}${important}</div>
+      <div class="body">${escapeHtml(n.body||"")}${file}</div>
+    </article>`;
+  }).join("");
+}
+
+async function openPrivateFile(id){
+  try{
+    const r=await api(GAS_URL+"?action=file&token="+encodeURIComponent(deviceToken)+"&id="+encodeURIComponent(id));
+    if(!r.ok) throw new Error(r.message||"ファイルを取得できませんでした");
+    const bin=atob(r.data);
+    const bytes=new Uint8Array(bin.length);
+    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
+    const blob=new Blob([bytes],{type:r.mimeType||"application/octet-stream"});
+    const url=URL.createObjectURL(blob);
+    window.open(url,"_blank");
+  }catch(e){ alert(e.message||"ファイルを開けませんでした"); }
+}
+
+async function adminLogin(){
+  const pw=document.getElementById("adminpw").value;
+  if(!pw) return;
+  try{
+    const r=await api(GAS_URL+"?action=login&password="+encodeURIComponent(pw));
+    if(!r.ok) throw new Error("パスワードが違います");
+    document.getElementById("adminPanel").style.display="block";
+    loadAdminList();
+  }catch(e){ alert(e.message); }
+}
+
+async function loadAdminList(){
+  const pw=document.getElementById("adminpw").value;
+  const r=await api(GAS_URL+"?action=listAdmin&password="+encodeURIComponent(pw));
+  if(!r.ok){ alert(r.message||"取得できません"); return; }
+  document.getElementById("adminList").innerHTML=(r.notices||[]).map((n,i)=>
+    `<div class="card"><b>${escapeHtml(n.title||"")}</b><div class="small">${escapeHtml(n.date||"")}</div>
+    <button class="secondary" onclick='editNotice(${i},${JSON.stringify(n)})'>編集</button>
+    <button class="secondary" onclick="deleteNotice(${i})">削除</button></div>`
+  ).join("");
+}
+
+function editNotice(i,n){
+  document.getElementById("editIndex").value=i;
+  document.getElementById("date").value=n.date||"";
+  document.getElementById("due").value=n.due||"";
+  document.getElementById("title").value=n.title||"";
+  document.getElementById("body").value=n.body||"";
+  document.getElementById("important").checked=!!n.important;
+  document.getElementById("fileinfo").textContent=n.fileName ? "現在の添付: "+n.fileName : "";
+  window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
+}
+
+function clearForm(){
+  ["date","due","title","body","editIndex"].forEach(id=>document.getElementById(id).value="");
+  document.getElementById("important").checked=false;
+  document.getElementById("file").value="";
+  document.getElementById("fileinfo").textContent="";
+}
+
+async function saveNotice(){
+  const pw=document.getElementById("adminpw").value;
+  const f=document.getElementById("file").files[0];
+  let fileData=null;
+  if(f){
+    const buf=await f.arrayBuffer();
+    let binary="";
+    const bytes=new Uint8Array(buf);
+    const chunk=0x8000;
+    for(let i=0;i<bytes.length;i+=chunk){
+      binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
+    }
+    fileData={name:f.name,mimeType:f.type||"application/octet-stream",data:btoa(binary)};
+  }
+  const payload={
+    action:"save",
+    password:pw,
+    index:document.getElementById("editIndex").value,
+    date:document.getElementById("date").value,
+    due:document.getElementById("due").value,
+    title:document.getElementById("title").value,
+    body:document.getElementById("body").value,
+    important:document.getElementById("important").checked,
+    file:fileData
+  };
+  try{
+    const r=await api(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
+    if(!r.ok) throw new Error(r.message||"保存できませんでした");
+    alert("保存しました");
+    clearForm(); loadAdminList(); loadNotices();
+  }catch(e){ alert(e.message||"保存に失敗しました"); }
+}
+
+async function deleteNotice(i){
+  if(!confirm("このお知らせを削除しますか？")) return;
+  const pw=document.getElementById("adminpw").value;
+  try{
+    const r=await api(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"delete",password:pw,index:i})});
+    if(!r.ok) throw new Error(r.message||"削除できませんでした");
+    loadAdminList(); loadNotices();
+  }catch(e){ alert(e.message||"削除に失敗しました"); }
+}
+
+function escapeHtml(s){
+  return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
+}
+function escapeAttr(s){return escapeHtml(s).replace(/`/g,"&#96;");}
+
+if(!GAS_URL.includes("ここに")) loadNotices();
+</script>
+</body>
+</html>
