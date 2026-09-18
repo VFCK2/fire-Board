@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v5</title>
+<title>Board v6</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -99,6 +99,41 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
   margin-right:0;
   width:100%;
 }
+
+.pdf-download-box{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px;
+  border:1px solid #dfe3e9;
+  border-radius:10px;
+  background:#f8fafc;
+}
+.pdf-download-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  border-radius:8px;
+  background:#172033;
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+}
+.pdf-download-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:0 14px;
+  border-radius:9px;
+  background:#172033;
+  color:#fff;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:700;
+}
 </style>
 </head>
 <body>
@@ -145,12 +180,20 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 <div class="panel-title">お知らせ登録・編集</div>
 <div class="form-grid">
 <div class="field"><label>掲載日</label><input id="fDate" class="input" type="date"></div>
-<div class="field"><label>期日</label><input id="fDue" class="input" type="date"></div>
+<div class="field">
+  <label>期日</label>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input id="fDue" class="input" type="date" style="flex:1">
+    <label class="check" style="margin:0;white-space:nowrap">
+      <input id="fNoDue" type="checkbox" onchange="toggleNoDue()"> 無期限
+    </label>
+  </div>
+</div>
 </div>
 <div class="field" style="margin-top:9px"><label>タイトル</label><input id="fTitle" class="input" type="text" maxlength="100" placeholder="例：訓練のお知らせ"></div>
 <div class="field" style="margin-top:9px"><label>本文</label><textarea id="fBody" class="textarea" placeholder="お知らせ内容"></textarea></div>
 <label class="check"><input id="fImportant" type="checkbox"> 重要なお知らせ</label>
-<div class="field" style="margin-top:12px"><label>添付ファイル（任意）</label><input id="fFile" class="input" type="file"></div>
+<div class="field" style="margin-top:12px"><label>添付ファイル（任意）</label><input id="fFile" class="input" type="file" accept="image/*,.pdf,application/pdf"></div>
 <button class="primary-btn" onclick="saveNotice()">保存する</button>
 <button class="secondary-btn" onclick="clearForm()">新規入力に戻す</button>
 <div id="saveError" class="error"></div>
@@ -259,7 +302,7 @@ function renderUserNotices(arr){
     if(urgent)badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
     if(expired)badges+='<span class="badge badge-expired">期限終了</span>';
     const preview=n.fileId?`<div id="file-preview-${i}" class="file-preview" data-file-id="${esc(n.fileId)}" data-file-name="${esc(n.fileName||"添付ファイル")}" data-mime="${esc(n.mimeType||"")}" style="display:none"></div>`:"";
-    const period=(n.date||n.due)?`<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):""}</div>`:"";
+    const period=(n.date||n.due)?`<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):"期日：無期限"}</div>`:"";
     return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}">
       <button type="button" class="notice-summary-btn" onclick="toggleNoticeById('notice-detail-${i}',this,${n.fileId?`'file-preview-${i}'`:"null"})">
         <span class="notice-summary"><span class="notice-summary-main">
@@ -306,7 +349,7 @@ async function loadInlineFile(preview){
 
   preview.dataset.loading="1";
   preview.style.display="block";
-  preview.innerHTML='<div class="file-preview-label">添付ファイルを読み込み中…</div>';
+  preview.innerHTML='<div class="file-preview-label" style="display:block">添付ファイルを読み込み中…</div>';
 
   try{
     const res=await requestGet({
@@ -333,36 +376,39 @@ async function loadInlineFile(preview){
          lowerName.endsWith(".webp") ? "image/webp" :
          lowerName.endsWith(".bmp") ? "image/bmp" : "image/jpeg");
 
-      // GASから返るBase64を、そのままdata URLとして表示
       img.src="data:"+imageMime+";base64,"+res.data;
       img.alt=name;
       img.loading="lazy";
       preview.appendChild(img);
 
     }else if(mime==="application/pdf" || lowerName.endsWith(".pdf")){
-      // PDFもBase64からBlob URLを作成して表示
       const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
       const blob=new Blob([bytes],{type:"application/pdf"});
       const url=URL.createObjectURL(blob);
 
-      const iframe=document.createElement("iframe");
-      iframe.src=url;
-      iframe.title=name;
-      iframe.loading="lazy";
-      preview.appendChild(iframe);
+      const wrap=document.createElement("div");
+      wrap.className="pdf-download-box";
 
-      // ページを離れるまで使えるよう、URLは即時 revoke しない
+      const icon=document.createElement("span");
+      icon.className="pdf-download-icon";
+      icon.textContent="PDF";
+
+      const a=document.createElement("a");
+      a.href=url;
+      a.download=name;
+      a.className="pdf-download-btn";
+      a.textContent="PDFをダウンロード";
+      a.addEventListener("click",()=>setTimeout(()=>URL.revokeObjectURL(url),60000));
+
+      wrap.appendChild(icon);
+      wrap.appendChild(a);
+      preview.appendChild(wrap);
       preview.dataset.blobUrl=url;
 
     }else{
       preview.innerHTML='<div class="file-error">画像またはPDFのみ表示できます。</div>';
       return;
     }
-
-    const label=document.createElement("div");
-    label.className="file-preview-label";
-    label.textContent=name;
-    preview.appendChild(label);
 
     preview.dataset.loaded="1";
 
@@ -404,7 +450,7 @@ function renderAdminNotices(){
   list.innerHTML=adminNotices.map((n,i)=>`
     <div class="admin-item ${n.soon?"urgent":""}">
       <div class="admin-item-title">${esc(n.title)}</div>
-      <div class="admin-item-meta">掲載 ${esc(n.date||"-")}　期日 ${esc(n.due||"-")}${n.important?"　重要":""}</div>
+      <div class="admin-item-meta">掲載 ${esc(n.date||"-")}　期日 ${n.due?esc(n.due):"無期限"}${n.important?"　重要":""}</div>
       <div class="admin-actions">
         <button class="small-btn" onclick="editNotice(${i})">編集</button>
         <button class="small-btn delete" onclick="deleteNotice(${i})">削除</button>
@@ -416,6 +462,8 @@ function editNotice(i){
   const n=adminNotices[i];editingIndex=(n.row||0)-2;
   document.getElementById("fDate").value=n.date||"";
   document.getElementById("fDue").value=n.due||"";
+  document.getElementById("fNoDue").checked=!n.due;
+  toggleNoDue();
   document.getElementById("fTitle").value=n.title||"";
   document.getElementById("fBody").value=n.body||"";
   document.getElementById("fImportant").checked=!!n.important;
@@ -423,10 +471,21 @@ function editNotice(i){
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
+function toggleNoDue(){
+  const noDue=document.getElementById("fNoDue").checked;
+  const due=document.getElementById("fDue");
+  due.disabled=noDue;
+  if(noDue) due.value="";
+}
+
 function clearForm(){
   editingIndex=-1;
   document.getElementById("fDate").value=localDate();
+  document.getElementById("fNoDue").checked=true;
+  toggleNoDue();
   document.getElementById("fDue").value="";
+  document.getElementById("fNoDue").checked=true;
+  toggleNoDue();
   document.getElementById("fTitle").value="";
   document.getElementById("fBody").value="";
   document.getElementById("fImportant").checked=false;
@@ -438,25 +497,57 @@ async function saveNotice(){
   const err=document.getElementById("saveError");err.textContent="";
   const title=document.getElementById("fTitle").value.trim();
   if(!title){err.textContent="タイトルを入力してください。";return}
+
+  const noDue=document.getElementById("fNoDue").checked;
   const data={
-    action:"save",password:adminPassword,index:editingIndex<0?"":editingIndex,
+    action:"save",
+    password:adminPassword,
+    index:editingIndex<0?"":editingIndex,
     date:document.getElementById("fDate").value,
-    due:document.getElementById("fDue").value,
-    title,body:document.getElementById("fBody").value,
+    due:noDue?"":document.getElementById("fDue").value,
+    title,
+    body:document.getElementById("fBody").value,
     important:document.getElementById("fImportant").checked
   };
+
   const file=document.getElementById("fFile").files[0];
-  if(file){
-    if(file.size>15*1024*1024){err.textContent="添付ファイルは15MB以下にしてください。";return}
-    data.file={name:file.name,mimeType:file.type||"application/octet-stream",data:await fileToBase64(file)};
-  }
+
   try{
+    showToast("保存準備中…");
+
+    if(file){
+      if(file.size>15*1024*1024){
+        err.textContent="添付ファイルは15MB以下にしてください。";
+        showToast("保存できません");
+        return;
+      }
+      if(!(file.type||"").startsWith("image/") &&
+         !file.name.toLowerCase().endsWith(".pdf")){
+        err.textContent="添付できるのは画像またはPDFです。";
+        showToast("保存できません");
+        return;
+      }
+      showToast("画像・PDFを準備中…");
+      data.file={
+        name:file.name,
+        mimeType:file.type||"application/octet-stream",
+        data:await fileToBase64(file)
+      };
+    }
+
     showToast("保存しています…");
     const res=await requestPost(data);
     if(!res.ok)throw new Error(res.message||"保存失敗");
-    showToast(editingIndex<0?"お知らせを登録しました":"お知らせを更新しました");
-    clearForm();await loadAdminNotices();
-  }catch(e){err.textContent=e.message||"保存に失敗しました。"}
+
+    showToast(editingIndex<0?"保存しました":"更新しました");
+    clearForm();
+    await loadAdminNotices();
+
+  }catch(e){
+    console.error(e);
+    err.textContent=e.message||"保存に失敗しました。";
+    showToast("保存に失敗しました");
+  }
 }
 
 async function deleteNotice(i){
@@ -498,6 +589,8 @@ document.addEventListener("DOMContentLoaded",()=>{
   }
   if(getToken())showUserScreen();else showRegisterScreen();
   document.getElementById("fDate").value=localDate();
+  document.getElementById("fNoDue").checked=true;
+  toggleNoDue();
 });
 </script>
 </body>
