@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v4</title>
+<title>Board v5</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -64,29 +64,27 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
   margin-top:14px;
   width:100%;
   overflow:hidden;
-  border-radius:12px;
+  border-radius:0;
+  background:transparent;
 }
 .file-preview img{
   display:block;
   width:100%;
   height:auto;
-  max-height:70vh;
+  max-height:none;
   object-fit:contain;
-  background:#f3f4f6;
+  background:transparent;
 }
 .file-preview iframe{
   display:block;
   width:100%;
-  height:70vh;
+  height:75vh;
   min-height:420px;
   border:0;
   background:#fff;
 }
 .file-preview-label{
-  padding:8px 2px 0;
-  font-size:12px;
-  color:#667085;
-  word-break:break-all;
+  display:none;
 }
 .file-error{
   padding:12px;
@@ -94,6 +92,12 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
   background:#fff1f1;
   color:#b42318;
   font-size:13px;
+}
+
+.notice-details .file-preview{
+  margin-left:0;
+  margin-right:0;
+  width:100%;
 }
 </style>
 </head>
