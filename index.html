@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#b71c1c">
-<title>Board v1</title>
+<title>消防団 お知らせ</title>
 <style>
 *{box-sizing:border-box}
 body{margin:0;background:#f4f5f7;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
@@ -35,7 +35,10 @@ button.secondary{padding:9px 12px;border:0;border-radius:9px;background:#eee}
 </head>
 <body>
 <header>
-  <h1>消防団 お知らせ</h1>
+  <div style="display:flex;align-items:center;justify-content:space-between;gap:10px">
+    <h1>消防団 お知らせ</h1>
+    <button onclick="showAdmin()" style="border:0;background:#ffffff22;color:#fff;border-radius:8px;padding:7px 10px;font-size:12px">管理</button>
+  </div>
 </header>
 
 <main>
@@ -70,6 +73,32 @@ button.secondary{padding:9px 12px;border:0;border-radius:9px;background:#eee}
     </div>
   </section>
 </main>
+
+<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:#0008;z-index:110;align-items:center;justify-content:center;padding:20px">
+  <div class="modal">
+    <h2>管理者</h2>
+    <p class="small">管理者パスワードを入力してください。</p>
+    <input id="adminpwOverlay" type="password" placeholder="管理者パスワード">
+    <div style="height:12px"></div>
+    <button class="primary" onclick="openAdmin()">管理画面を開く</button>
+    <div style="height:8px"></div>
+    <button class="secondary" style="width:100%" onclick="hideAdmin()">閉じる</button>
+    <p id="adminmsg" class="small"></p>
+  </div>
+</div>
+
+<div id="adminOverlay" style="display:none;position:fixed;inset:0;background:#0008;z-index:110;align-items:center;justify-content:center;padding:20px">
+  <div class="modal">
+    <h2>管理者</h2>
+    <p class="small">管理者パスワードを入力してください。</p>
+    <input id="adminpwOverlay" type="password" placeholder="管理者パスワード">
+    <div style="height:12px"></div>
+    <button class="primary" onclick="openAdmin()">管理画面を開く</button>
+    <div style="height:8px"></div>
+    <button class="secondary" style="width:100%" onclick="hideAdmin()">閉じる</button>
+    <p id="adminmsg" class="small"></p>
+  </div>
+</div>
 
 <div id="registerOverlay">
   <div class="modal">
@@ -162,6 +191,54 @@ async function openPrivateFile(id){
     const url=URL.createObjectURL(blob);
     window.open(url,"_blank");
   }catch(e){ alert(e.message||"ファイルを開けませんでした"); }
+}
+
+function showAdmin(){
+  document.getElementById("adminOverlay").style.display="flex";
+  document.getElementById("adminpwOverlay").value="";
+  document.getElementById("adminmsg").textContent="";
+  setTimeout(()=>document.getElementById("adminpwOverlay").focus(),50);
+}
+function hideAdmin(){document.getElementById("adminOverlay").style.display="none";}
+async function openAdmin(){
+  const pw=document.getElementById("adminpwOverlay").value.trim();
+  const msg=document.getElementById("adminmsg");
+  if(!pw){msg.textContent="パスワードを入力してください。";return;}
+  msg.textContent="確認中...";
+  try{
+    const r=await api(GAS_URL+"?action=login&password="+encodeURIComponent(pw));
+    if(!r.ok) throw new Error("パスワードが違います");
+    document.getElementById("adminpw").value=pw;
+    document.getElementById("admin").style.display="block";
+    document.getElementById("adminPanel").style.display="block";
+    hideAdmin();
+    loadAdminList();
+    document.getElementById("admin").scrollIntoView({behavior:"smooth"});
+  }catch(e){msg.textContent=e.message||"認証に失敗しました。";}
+}
+
+function showAdmin(){
+  document.getElementById("adminOverlay").style.display="flex";
+  document.getElementById("adminpwOverlay").value="";
+  document.getElementById("adminmsg").textContent="";
+  setTimeout(()=>document.getElementById("adminpwOverlay").focus(),50);
+}
+function hideAdmin(){document.getElementById("adminOverlay").style.display="none";}
+async function openAdmin(){
+  const pw=document.getElementById("adminpwOverlay").value.trim();
+  const msg=document.getElementById("adminmsg");
+  if(!pw){msg.textContent="パスワードを入力してください。";return;}
+  msg.textContent="確認中...";
+  try{
+    const r=await api(GAS_URL+"?action=login&password="+encodeURIComponent(pw));
+    if(!r.ok) throw new Error("パスワードが違います");
+    document.getElementById("adminpw").value=pw;
+    document.getElementById("admin").style.display="block";
+    document.getElementById("adminPanel").style.display="block";
+    hideAdmin();
+    loadAdminList();
+    document.getElementById("admin").scrollIntoView({behavior:"smooth"});
+  }catch(e){msg.textContent=e.message||"認証に失敗しました。";}
 }
 
 async function adminLogin(){
