@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v2</title>
+<title>Board v3</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -348,7 +348,6 @@ async function registerDevice(){
     const res=await requestPost({action:"register",code});
     if(!res.ok)throw new Error(res.message||"登録に失敗しました。");
     localStorage.setItem(DEVICE_KEY,res.token);
-    showToast("端末を登録しました");
     showUserScreen();
   }catch(e){err.textContent=e.message||"通信に失敗しました。"}
   finally{btn.disabled=false;btn.textContent="この端末を登録"}
@@ -422,15 +421,14 @@ async function openPrivateFile(e,id,name){
   e.preventDefault();
   e.stopPropagation();
   try{
-    showToast("ファイルを開いています…");
-    const res=await requestGet({action:"file",id,token:getToken()});
+      const res=await requestGet({action:"file",id,token:getToken()});
     if(!res.ok)throw new Error(res.message||"ファイル取得失敗");
     const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
     const blob=new Blob([bytes],{type:res.mimeType||"application/octet-stream"});
     const url=URL.createObjectURL(blob);
     const a=document.createElement("a");a.href=url;a.download=res.fileName||name;a.target="_blank";a.click();
     setTimeout(()=>URL.revokeObjectURL(url),60000);
-  }catch(e){showToast("ファイルを開けませんでした")}
+  }catch(e){console.error("ファイル取得エラー:",e)}
 }
 
 async function downloadPrivateFile(e,btn){
@@ -446,7 +444,6 @@ async function downloadPrivateFile(e,btn){
   btn.dataset.busy="1";
   btn.disabled=true;
   btn.innerHTML="⏳ ダウンロード準備中…";
-  showToast("添付ファイルを準備しています…");
 
   try{
     const res=await requestGet({
@@ -473,69 +470,13 @@ async function downloadPrivateFile(e,btn){
     a.remove();
 
     setTimeout(()=>URL.revokeObjectURL(url),60000);
-    showToast("ダウンロードを開始しました");
 
   }catch(err){
     console.error("添付ファイル取得エラー:",err);
-    showToast("ダウンロードできませんでした");
   }finally{
     btn.disabled=false;
     btn.dataset.busy="0";
     btn.innerHTML=original;
-  }
-}
-
-async function loadInlineFile(preview){
-  if(preview.dataset.loading==="1" || preview.dataset.loaded==="1") return;
-
-  preview.dataset.loading="1";
-  preview.style.display="block";
-  preview.innerHTML='<div class="file-download-loading">添付ファイルを準備中…</div>';
-
-  try{
-    const res=await requestGet({
-      action:"file",
-      id:preview.dataset.fileId,
-      token:getToken()
-    });
-
-    if(!res || !res.ok || !res.data){
-      throw new Error((res&&res.message)||"ファイル取得失敗");
-    }
-
-    const mime=(res.mimeType||"application/octet-stream").toLowerCase();
-    const name=res.fileName||preview.dataset.fileName||"添付ファイル";
-    const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
-    const blob=new Blob([bytes],{type:mime});
-    const url=URL.createObjectURL(blob);
-
-    const wrap=document.createElement("div");
-    wrap.className="file-download-box";
-
-    const icon=document.createElement("span");
-    icon.className="file-download-icon";
-    icon.textContent=mime==="application/pdf"||/\.pdf$/i.test(name)?"PDF":"画像";
-
-    const a=document.createElement("a");
-    a.href=url;
-    a.download=name;
-    a.className="file-download-btn";
-    a.textContent="添付ファイルをダウンロード";
-    a.addEventListener("click",()=>{
-      setTimeout(()=>URL.revokeObjectURL(url),60000);
-    });
-
-    wrap.appendChild(icon);
-    wrap.appendChild(a);
-    preview.appendChild(wrap);
-
-    preview.dataset.loaded="1";
-
-  }catch(e){
-    console.error("添付ファイル取得エラー:",e);
-    preview.innerHTML='<div class="file-error">添付ファイルを取得できませんでした。</div>';
-  }finally{
-    delete preview.dataset.loading;
   }
 }
 
@@ -632,7 +573,7 @@ async function saveNotice(){
   const file=document.getElementById("fFile").files[0];
 
   try{
-    showToast("保存準備中…");
+    showToast(editingIndex<0?"保存の準備中…":"更新の準備中…");
 
     if(file){
       if(file.size>15*1024*1024){
@@ -646,7 +587,7 @@ async function saveNotice(){
         showToast("保存できません");
         return;
       }
-      showToast("画像・PDFを準備中…");
+      showToast("添付ファイルを準備中…");
       data.file={
         name:file.name,
         mimeType:file.type||"application/octet-stream",
@@ -654,7 +595,7 @@ async function saveNotice(){
       };
     }
 
-    showToast("保存しています…");
+    showToast(editingIndex<0?"保存しています…":"更新しています…");
     const res=await requestPost(data);
     if(!res.ok)throw new Error(res.message||"保存失敗");
 
