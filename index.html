@@ -4,10 +4,10 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v5</title>
+<title>Board v6</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
-html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#eef1f5}
+html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
 body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 .header{position:sticky;top:0;z-index:20;background:#172033;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)}
 .header-inner{max-width:760px;margin:auto;min-height:62px;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
@@ -17,6 +17,16 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 .page-title{font-size:24px;font-weight:800;margin:3px 2px 5px}.page-subtitle{font-size:13px;color:#697386;margin:0 2px 17px}
 .notice-list{display:flex;flex-direction:column;gap:12px}
 .notice-card{background:#fff;border:1px solid #d9dfe7;border-radius:16px;padding:15px;box-shadow:0 3px 10px rgba(20,30,45,.07)}
+.notice-card{cursor:pointer;overflow:hidden}
+.notice-card:active{transform:scale(.995)}
+.notice-summary{display:flex;align-items:center;gap:10px}
+.notice-summary-main{min-width:0;flex:1}
+.notice-chevron{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;color:#596577;font-size:16px;transition:transform .2s,background .2s}
+.notice-card.open .notice-chevron{transform:rotate(180deg);background:#e5e9ee}
+.notice-details{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #e2e6eb}
+.notice-card.open .notice-details{display:block}
+.notice-hint{font-size:11px;color:#8993a1;margin-top:3px}
+
 .notice-card.urgent{background:#fff8df;border:2px solid #efc94d;box-shadow:0 4px 14px rgba(210,165,35,.14)}
 .notice-card.expired{opacity:.68}
 .notice-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
@@ -54,7 +64,7 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 </div></header>
 <main class="main">
 <h1 class="page-title">お知らせ</h1>
-<p class="page-subtitle">VFC Board</p>
+<p class="page-subtitle">消防団からのお知らせ</p>
 <div id="noticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
 </main>
 </div>
@@ -185,27 +195,56 @@ async function loadUserNotices(){
 
 function renderUserNotices(arr){
   const list=document.getElementById("noticeList");
-  if(!arr.length){list.innerHTML='<div class="empty">現在、お知らせはありません。</div>';return}
-  list.innerHTML=arr.map(n=>{
+  if(!arr.length){
+    list.innerHTML='<div class="empty">現在、お知らせはありません。</div>';
+    return;
+  }
+
+  list.innerHTML=arr.map((n,i)=>{
     const urgent=!!n.soon;
     const expired=n.due && daysUntil(n.due)<0;
     let badges="";
-    if(n.important)badges+='<span class="badge badge-important">重要</span>';
-    if(urgent)badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
-    if(expired)badges+='<span class="badge badge-expired">期限終了</span>';
-    const file=n.fileId?`<a class="file-link" href="${GAS_URL}?action=file&id=${encodeURIComponent(n.fileId)}&token=${encodeURIComponent(getToken())}" target="_blank" rel="noopener" onclick="openPrivateFile(event,'${esc(n.fileId)}','${esc(n.fileName||"添付ファイル")}')">📎 ${esc(n.fileName||"添付ファイル")}</a>`:"";
-    return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}">
-      <div class="notice-top"><div class="notice-date">${esc(n.date||"")}</div><div class="notice-status">${badges}</div></div>
-      <h2 class="notice-title">${esc(n.title)}</h2>
-      ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}
-      ${file}
-      ${(n.date||n.due)?`<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):""}</div>`:""}
+    if(n.important) badges+='<span class="badge badge-important">重要</span>';
+    if(urgent) badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
+    if(expired) badges+='<span class="badge badge-expired">期限終了</span>';
+
+    const file=n.fileId
+      ? `<a class="file-link" href="${GAS_URL}?action=file&id=${encodeURIComponent(n.fileId)}&token=${encodeURIComponent(getToken())}" target="_blank" rel="noopener" onclick="openPrivateFile(event,'${esc(n.fileId)}','${esc(n.fileName||"添付ファイル")}')">📎 ${esc(n.fileName||"添付ファイル")}</a>`
+      : "";
+
+    const period=(n.date||n.due)
+      ? `<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):""}</div>`
+      : "";
+
+    return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}" onclick="toggleNotice(this)">
+      <div class="notice-summary">
+        <div class="notice-summary-main">
+          <div class="notice-top" style="margin-bottom:4px">
+            <div class="notice-date">${esc(n.date||"")}</div>
+            <div class="notice-status">${badges}</div>
+          </div>
+          <h2 class="notice-title" style="margin-bottom:0">${esc(n.title)}</h2>
+          <div class="notice-hint">タップして詳細を表示</div>
+        </div>
+        <div class="notice-chevron">⌄</div>
+      </div>
+
+      <div class="notice-details">
+        ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}
+        ${file}
+        ${period}
+      </div>
     </article>`;
   }).join("");
 }
 
+function toggleNotice(card){
+  card.classList.toggle("open");
+}
+
 async function openPrivateFile(e,id,name){
   e.preventDefault();
+  e.stopPropagation();
   try{
     showToast("ファイルを開いています…");
     const res=await requestGet({action:"file",id,token:getToken()});
