@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v1</title>
+<title>Board v2</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -131,7 +131,7 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 
 <script>
 /* ★ここにGASウェブアプリURLを入れてください */
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxoNoQf0sHjs3uhq56gYuxWmDvmdiheV3WI8j5BquSWUuNJI6U10Sql6oq2mvnkhcWLVA/exec";
+const GAS_URL = "https://script.google.com/macros/library/d/1GUmercIadMkaIVSOz_OmmeixcvEH9_5P26kEvGwiJkBc7AInZsf1Axas/4";
 
 const DEVICE_KEY="消防団お知らせ_token";
 let adminPassword="";
@@ -154,9 +154,15 @@ function showAdminScreen(){showOnly("adminScreen");loadAdminNotices()}
 async function requestGet(params){
   const url=new URL(GAS_URL);
   Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
-  const r=await fetch(url.toString(),{cache:"no-store"});
-  if(!r.ok)throw new Error("HTTP "+r.status);
-  return r.json();
+  const controller=new AbortController();
+  const timer=setTimeout(()=>controller.abort(),15000);
+  try{
+    const r=await fetch(url.toString(),{cache:"no-store",signal:controller.signal});
+    if(!r.ok)throw new Error("HTTP "+r.status);
+    return await r.json();
+  }finally{
+    clearTimeout(timer);
+  }
 }
 async function requestPost(data){
   const r=await fetch(GAS_URL,{
@@ -188,16 +194,36 @@ async function loadUserNotices(){
   const list=document.getElementById("noticeList");
   const token=getToken();
   if(!token){showRegisterScreen();return}
-  list.innerHTML='<div class="loading"><div class="spinner"></div>読み込み中…</div>';
+
+  // 一覧はまずキャッシュを表示。通信中も画面を止めない。
+  const cached=localStorage.getItem("notice_list_cache");
+  if(cached){
+    try{
+      const data=JSON.parse(cached);
+      if(Array.isArray(data)) renderUserNotices(data);
+    }catch(e){}
+  }else{
+    list.innerHTML='<div class="loading"><div class="spinner"></div>お知らせを読み込み中…</div>';
+  }
+
   try{
     const res=await requestGet({action:"list",token});
     if(!res.ok){
-      if((res.message||"").includes("登録されていません")){localStorage.removeItem(DEVICE_KEY);showRegisterScreen();return}
+      if((res.message||"").includes("登録されていません")){
+        localStorage.removeItem(DEVICE_KEY);
+        localStorage.removeItem("notice_list_cache");
+        showRegisterScreen();
+        return;
+      }
       throw new Error(res.message||"取得失敗");
     }
-    renderUserNotices(res.notices||[]);
+    const notices=res.notices||[];
+    localStorage.setItem("notice_list_cache",JSON.stringify(notices));
+    renderUserNotices(notices);
   }catch(e){
-    list.innerHTML='<div class="empty">お知らせを取得できませんでした。<br><button class="secondary-btn" style="max-width:180px" onclick="loadUserNotices()">再読み込み</button></div>';
+    if(!cached){
+      list.innerHTML='<div class="empty">お知らせを取得できませんでした。<br><button class="secondary-btn" style="max-width:180px" onclick="loadUserNotices()">再読み込み</button></div>';
+    }
   }
 }
 
@@ -284,8 +310,22 @@ function toggleNoticeById(id,btn,previewId){
 }
 
 async function loadInlineFile(preview){
+  const cacheKey="notice_file_cache_"+preview.dataset.fileId;
+  const cached=sessionStorage.getItem(cacheKey);
+
   preview.dataset.loading="1";
   preview.style.display="block";
+
+  if(cached){
+    try{
+      const c=JSON.parse(cached);
+      renderCachedFile(preview,c);
+      preview.dataset.loaded="1";
+      delete preview.dataset.loading;
+      return;
+    }catch(e){}
+  }
+
   preview.innerHTML='<div class="file-preview-label">添付ファイルを読み込み中…</div>';
 
   try{
@@ -297,37 +337,20 @@ async function loadInlineFile(preview){
 
     if(!res.ok) throw new Error(res.message||"ファイル取得失敗");
 
-    const mime=(res.mimeType||preview.dataset.mime||"").toLowerCase();
-    const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
-    const blob=new Blob([bytes],{type:mime||"application/octet-stream"});
-    const url=URL.createObjectURL(blob);
+    const data={
+      fileName:res.fileName||preview.dataset.fileName||"添付ファイル",
+      mimeType:(res.mimeType||preview.dataset.mime||"").toLowerCase(),
+      data:res.data
+    };
 
-    if(mime.startsWith("image/")){
-      const img=document.createElement("img");
-      img.src=url;
-      img.alt=res.fileName||preview.dataset.fileName||"添付画像";
-      img.onload=()=>URL.revokeObjectURL(url);
-      preview.innerHTML="";
-      preview.appendChild(img);
-      const label=document.createElement("div");
-      label.className="file-preview-label";
-      label.textContent=res.fileName||preview.dataset.fileName||"添付画像";
-      preview.appendChild(label);
-    }else if(mime==="application/pdf" || (res.fileName||"").toLowerCase().endsWith(".pdf")){
-      const iframe=document.createElement("iframe");
-      iframe.src=url;
-      iframe.title=res.fileName||preview.dataset.fileName||"PDF";
-      preview.innerHTML="";
-      preview.appendChild(iframe);
-      const label=document.createElement("div");
-      label.className="file-preview-label";
-      label.textContent=res.fileName||preview.dataset.fileName||"PDF";
-      preview.appendChild(label);
-    }else{
-      URL.revokeObjectURL(url);
-      preview.innerHTML='<div class="file-error">このファイル形式には対応していません。</div>';
-    }
+    // セッション中は再取得しない。大きすぎるデータは保存を避ける。
+    try{
+      if(data.data && data.data.length < 6*1024*1024){
+        sessionStorage.setItem(cacheKey,JSON.stringify(data));
+      }
+    }catch(e){}
 
+    renderCachedFile(preview,data);
     preview.dataset.loaded="1";
   }catch(e){
     console.error(e);
@@ -337,6 +360,37 @@ async function loadInlineFile(preview){
   }
 }
 
+function renderCachedFile(preview,data){
+  const mime=data.mimeType||"";
+  const bytes=Uint8Array.from(atob(data.data),c=>c.charCodeAt(0));
+  const blob=new Blob([bytes],{type:mime||"application/octet-stream"});
+  const url=URL.createObjectURL(blob);
+
+  preview.innerHTML="";
+
+  if(mime.startsWith("image/")){
+    const img=document.createElement("img");
+    img.src=url;
+    img.alt=data.fileName;
+    img.loading="lazy";
+    img.onload=()=>URL.revokeObjectURL(url);
+    preview.appendChild(img);
+  }else if(mime==="application/pdf" || data.fileName.toLowerCase().endsWith(".pdf")){
+    const iframe=document.createElement("iframe");
+    iframe.src=url;
+    iframe.title=data.fileName;
+    preview.appendChild(iframe);
+  }else{
+    URL.revokeObjectURL(url);
+    preview.innerHTML='<div class="file-error">画像またはPDFのみ表示できます。</div>';
+    return;
+  }
+
+  const label=document.createElement("div");
+  label.className="file-preview-label";
+  label.textContent=data.fileName;
+  preview.appendChild(label);
+}
 async function loginAdmin(){
   const pw=document.getElementById("adminCode").value.trim();
   const err=document.getElementById("adminError");err.textContent="";
