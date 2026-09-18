@@ -1,258 +1,1521 @@
+```html
 <!DOCTYPE html>
 <html lang="ja">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#b71c1c">
-<title>Board v3</title>
+<meta name="theme-color" content="#172033">
+<title>Board v4</title>
+
 <style>
-*{box-sizing:border-box}
-body{margin:0;background:#f4f5f7;color:#222;font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif}
-header{position:sticky;top:0;z-index:10;background:#b71c1c;color:#fff;padding:14px 16px;box-shadow:0 2px 8px #0002}
-header h1{font-size:20px;margin:0}
-main{max-width:720px;margin:auto;padding:12px}
-.card{background:#fff;border-radius:14px;margin:10px 0;padding:14px;box-shadow:0 2px 8px #0001}
-.card.soon{border:2px solid #f57c00}
-.meta{font-size:12px;color:#777}
-.title{font-size:18px;font-weight:700;margin:5px 0}
-.badge{display:inline-block;background:#f57c00;color:#fff;border-radius:999px;padding:3px 8px;font-size:11px;margin-left:6px}
-.body{display:none;margin-top:12px;line-height:1.7;white-space:pre-wrap;border-top:1px solid #eee;padding-top:12px}
-.card.open .body{display:block}
-.attach{margin-top:12px}
-.attach button{border:0;border-radius:9px;padding:9px 12px;background:#eee}
-.empty{text-align:center;color:#777;padding:40px 10px}
-#registerOverlay{position:fixed;inset:0;background:#0008;z-index:100;display:flex;align-items:center;justify-content:center;padding:20px}
-.modal{background:#fff;border-radius:16px;padding:22px;width:min(420px,100%);box-shadow:0 10px 40px #0005}
-.modal h2{margin-top:0}
-input,textarea,select{width:100%;padding:11px;border:1px solid #ccc;border-radius:9px;font-size:16px}
-button.primary{width:100%;padding:12px;border:0;border-radius:10px;background:#b71c1c;color:#fff;font-size:16px;font-weight:700}
-button.secondary{padding:9px 12px;border:0;border-radius:9px;background:#eee}
-#admin{display:none}
-.row{display:grid;gap:8px;margin:10px 0}
-.fileinfo{font-size:12px;color:#666;margin-top:5px}
-.small{font-size:12px;color:#777}
+*{
+  box-sizing:border-box;
+  -webkit-tap-highlight-color:transparent;
+}
+
+html,body{
+  margin:0;
+  padding:0;
+  font-family:
+    -apple-system,
+    BlinkMacSystemFont,
+    "Noto Sans JP",
+    "Yu Gothic",
+    sans-serif;
+  color:#18202d;
+  background:#eef1f5;
+}
+
+body{
+  min-height:100vh;
+}
+
+button,
+input,
+textarea{
+  font:inherit;
+}
+
+button{
+  cursor:pointer;
+}
+
+/* =========================
+   HEADER
+========================= */
+
+.header{
+  position:sticky;
+  top:0;
+  z-index:100;
+  background:#172033;
+  color:#fff;
+  box-shadow:0 2px 10px rgba(0,0,0,.18);
+}
+
+.header-inner{
+  max-width:760px;
+  margin:auto;
+  min-height:64px;
+  padding:10px 16px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+.logo{
+  font-size:20px;
+  font-weight:800;
+  letter-spacing:.03em;
+}
+
+.header-actions{
+  display:flex;
+  gap:7px;
+}
+
+.header-btn{
+  border:1px solid rgba(255,255,255,.22);
+  background:rgba(255,255,255,.09);
+  color:#fff;
+  border-radius:10px;
+  padding:8px 11px;
+  font-size:13px;
+}
+
+.header-btn:active{
+  transform:scale(.97);
+}
+
+/* =========================
+   MAIN
+========================= */
+
+.main{
+  max-width:760px;
+  margin:0 auto;
+  padding:18px 14px 40px;
+}
+
+.page-title{
+  font-size:24px;
+  font-weight:800;
+  margin:4px 2px 5px;
+}
+
+.page-subtitle{
+  font-size:13px;
+  color:#697386;
+  margin:0 2px 18px;
+}
+
+/* =========================
+   NOTICE CARD
+========================= */
+
+.notice-list{
+  display:flex;
+  flex-direction:column;
+  gap:12px;
+}
+
+.notice-card{
+  background:#fff;
+  border:1px solid #dce1e8;
+  border-radius:16px;
+  padding:15px;
+  box-shadow:0 3px 10px rgba(20,30,45,.07);
+  transition:.15s ease;
+}
+
+.notice-card:active{
+  transform:scale(.995);
+}
+
+/* 3日前〜当日 */
+.notice-card.urgent{
+  background:#fff8df;
+  border:2px solid #f0c84b;
+  box-shadow:0 4px 14px rgba(210,165,35,.15);
+}
+
+.notice-card.expired{
+  opacity:.72;
+}
+
+.notice-top{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+  margin-bottom:7px;
+}
+
+.notice-date{
+  font-size:12px;
+  color:#667085;
+  font-weight:600;
+}
+
+.notice-status{
+  display:flex;
+  gap:5px;
+  flex-wrap:wrap;
+  justify-content:flex-end;
+}
+
+.badge{
+  display:inline-flex;
+  align-items:center;
+  min-height:23px;
+  padding:3px 8px;
+  border-radius:999px;
+  font-size:11px;
+  font-weight:800;
+  white-space:nowrap;
+}
+
+.badge-important{
+  color:#fff;
+  background:#dc3545;
+}
+
+.badge-urgent{
+  color:#6b4b00;
+  background:#ffd86b;
+}
+
+.badge-expired{
+  color:#fff;
+  background:#8b95a5;
+}
+
+.notice-title{
+  font-size:19px;
+  line-height:1.4;
+  font-weight:800;
+  margin:0 0 10px;
+  color:#172033;
+}
+
+.notice-body{
+  font-size:14px;
+  line-height:1.8;
+  white-space:pre-wrap;
+  word-break:break-word;
+}
+
+.notice-period{
+  margin-top:12px;
+  padding-top:10px;
+  border-top:1px solid #e6e9ee;
+  color:#687385;
+  font-size:12px;
+}
+
+.notice-file{
+  margin-top:12px;
+}
+
+.file-link{
+  display:flex;
+  align-items:center;
+  gap:9px;
+  text-decoration:none;
+  color:#2457b8;
+  background:#f2f6ff;
+  border:1px solid #d9e4ff;
+  border-radius:10px;
+  padding:10px 12px;
+  font-size:13px;
+  font-weight:700;
+}
+
+.file-link:active{
+  background:#e8efff;
+}
+
+/* =========================
+   EMPTY / LOADING
+========================= */
+
+.loading{
+  text-align:center;
+  padding:55px 15px;
+  color:#687385;
+  font-size:14px;
+}
+
+.spinner{
+  width:28px;
+  height:28px;
+  margin:0 auto 12px;
+  border:3px solid #dce1e8;
+  border-top-color:#172033;
+  border-radius:50%;
+  animation:spin .8s linear infinite;
+}
+
+@keyframes spin{
+  to{transform:rotate(360deg);}
+}
+
+.empty{
+  background:#fff;
+  border:1px solid #dce1e8;
+  border-radius:16px;
+  padding:35px 20px;
+  text-align:center;
+  color:#687385;
+  box-shadow:0 3px 10px rgba(20,30,45,.05);
+}
+
+/* =========================
+   REGISTER
+========================= */
+
+.screen{
+  min-height:100vh;
+}
+
+.register-wrap{
+  min-height:100vh;
+  display:flex;
+  align-items:center;
+  justify-content:center;
+  padding:20px;
+  background:#eef1f5;
+}
+
+.register-card{
+  width:100%;
+  max-width:420px;
+  background:#fff;
+  border:1px solid #dce1e8;
+  border-radius:20px;
+  padding:25px 20px;
+  box-shadow:0 8px 30px rgba(20,30,45,.10);
+}
+
+.register-title{
+  font-size:23px;
+  font-weight:800;
+  margin:0 0 8px;
+}
+
+.register-text{
+  font-size:13px;
+  color:#697386;
+  line-height:1.7;
+  margin-bottom:20px;
+}
+
+.code-input{
+  width:100%;
+  height:52px;
+  border:1px solid #cbd2dc;
+  border-radius:11px;
+  padding:0 14px;
+  font-size:18px;
+  letter-spacing:.12em;
+  outline:none;
+  text-align:center;
+}
+
+.code-input:focus{
+  border-color:#506b9b;
+  box-shadow:0 0 0 3px rgba(80,107,155,.12);
+}
+
+.primary-btn{
+  width:100%;
+  height:50px;
+  border:0;
+  border-radius:11px;
+  background:#172033;
+  color:#fff;
+  font-weight:800;
+  margin-top:12px;
+}
+
+.primary-btn:active{
+  transform:scale(.98);
+}
+
+.error{
+  margin-top:12px;
+  color:#d3293d;
+  font-size:13px;
+  line-height:1.6;
+}
+
+/* =========================
+   ADMIN
+========================= */
+
+.admin-screen{
+  display:none;
+}
+
+.admin-header{
+  background:#172033;
+  color:#fff;
+}
+
+.admin-header-inner{
+  max-width:760px;
+  margin:auto;
+  min-height:64px;
+  padding:10px 15px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+}
+
+.admin-title{
+  font-size:18px;
+  font-weight:800;
+}
+
+.back-btn{
+  border:1px solid rgba(255,255,255,.25);
+  background:rgba(255,255,255,.08);
+  color:#fff;
+  border-radius:9px;
+  padding:8px 12px;
+  font-size:13px;
+}
+
+.admin-main{
+  max-width:760px;
+  margin:auto;
+  padding:18px 14px 40px;
+}
+
+.admin-panel{
+  background:#fff;
+  border:1px solid #dce1e8;
+  border-radius:16px;
+  padding:16px;
+  margin-bottom:14px;
+}
+
+.admin-panel-title{
+  font-size:16px;
+  font-weight:800;
+  margin-bottom:12px;
+}
+
+.admin-menu{
+  display:grid;
+  grid-template-columns:1fr 1fr;
+  gap:9px;
+}
+
+.admin-menu button{
+  min-height:46px;
+  border:1px solid #d5dbe4;
+  background:#f7f8fa;
+  border-radius:10px;
+  font-weight:700;
+  color:#263144;
+}
+
+.admin-menu button:active{
+  transform:scale(.98);
+}
+
+/* =========================
+   TOAST
+========================= */
+
+.toast{
+  position:fixed;
+  left:50%;
+  bottom:22px;
+  transform:translate(-50%,20px);
+  z-index:999;
+  background:#172033;
+  color:#fff;
+  border-radius:10px;
+  padding:11px 16px;
+  font-size:13px;
+  box-shadow:0 6px 20px rgba(0,0,0,.2);
+  opacity:0;
+  pointer-events:none;
+  transition:.2s;
+}
+
+.toast.show{
+  opacity:1;
+  transform:translate(-50%,0);
+}
+
+/* =========================
+   RESPONSIVE
+========================= */
+
+@media(max-width:480px){
+
+  .header-inner{
+    min-height:58px;
+    padding:8px 12px;
+  }
+
+  .logo{
+    font-size:18px;
+  }
+
+  .main{
+    padding:15px 11px 30px;
+  }
+
+  .page-title{
+    font-size:22px;
+  }
+
+  .notice-card{
+    border-radius:14px;
+    padding:13px;
+  }
+
+  .notice-title{
+    font-size:18px;
+  }
+
+  .notice-body{
+    font-size:14px;
+    line-height:1.75;
+  }
+
+  .notice-top{
+    align-items:flex-start;
+  }
+
+  .admin-menu{
+    grid-template-columns:1fr;
+  }
+}
 </style>
 </head>
+
 <body>
-<header>
-  <h1>VFC Board</h1>
-</header>
 
-<main>
-  <section id="noticeList"></section>
+<!-- =========================
+     利用画面
+========================= -->
 
-  <section id="admin" class="card">
-    <h2>管理者</h2>
-    <div class="row">
-      <input id="adminpw" type="password" placeholder="管理者パスワード">
-      <button class="primary" onclick="adminLogin()">管理画面を開く</button>
-    </div>
-    <div id="adminPanel" style="display:none">
-      <hr>
-      <h3>お知らせ登録・編集</h3>
-      <input type="hidden" id="editIndex">
-      <div class="row"><label>掲載日<input id="date" type="date"></label></div>
-      <div class="row"><label>期日<input id="due" type="date"></label></div>
-      <div class="row"><label>タイトル<input id="title"></label></div>
-      <div class="row"><label>本文<textarea id="body" rows="6"></textarea></label></div>
-      <div class="row"><label><input id="important" type="checkbox" style="width:auto"> 重要</label></div>
-      <div class="row">
-        <label>PDF / 画像
-          <input id="file" type="file" accept=".pdf,image/*">
-        </label>
-        <div id="fileinfo" class="fileinfo"></div>
+<div id="userScreen" class="screen">
+
+  <header class="header">
+    <div class="header-inner">
+
+      <div class="logo">お知らせ</div>
+
+      <div class="header-actions">
+        <button class="header-btn" onclick="showAdminLogin()">
+          管理
+        </button>
       </div>
-      <div class="row">
-        <button class="primary" onclick="saveNotice()">保存</button>
-        <button class="secondary" onclick="clearForm()">新規入力に戻す</button>
-      </div>
-      <div id="adminList"></div>
-    </div>
-  </section>
-</main>
 
-<div id="registerOverlay">
-  <div class="modal">
-    <h2>初回登録</h2>
-    <p>この端末を消防団のお知らせに登録します。</p>
-    <p class="small">登録は初回のみです。登録後はこの端末から自動的に利用できます。</p>
-    <input id="regcode" type="password" placeholder="登録コード">
-    <div style="height:12px"></div>
-    <button class="primary" onclick="registerDevice()">この端末を登録</button>
-    <p id="regmsg" class="small"></p>
-  </div>
+    </div>
+  </header>
+
+  <main class="main">
+
+    <h1 class="page-title">お知らせ</h1>
+    <p class="page-subtitle">
+      VFC Board
+    </p>
+
+    <div id="noticeList" class="notice-list">
+      <div class="loading">
+        <div class="spinner"></div>
+        読み込み中…
+      </div>
+    </div>
+
+  </main>
+
 </div>
 
+
+<!-- =========================
+     初回登録画面
+========================= -->
+
+<div id="registerScreen" class="screen" style="display:none;">
+
+  <div class="register-wrap">
+
+    <div class="register-card">
+
+      <h1 class="register-title">初回登録</h1>
+
+      <div class="register-text">
+        初回のみ登録コードを入力してください。<br>
+        登録後は、この端末から自動的に利用できます。
+      </div>
+
+      <input
+        id="registerCode"
+        class="code-input"
+        type="text"
+        inputmode="text"
+        autocomplete="off"
+        placeholder="登録コード"
+      >
+
+      <button
+        class="primary-btn"
+        onclick="registerDevice()">
+        この端末を登録
+      </button>
+
+      <div id="registerError" class="error"></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =========================
+     管理ログイン
+========================= -->
+
+<div id="adminLoginScreen" class="screen" style="display:none;">
+
+  <div class="register-wrap">
+
+    <div class="register-card">
+
+      <h1 class="register-title">管理者</h1>
+
+      <div class="register-text">
+        管理者コードを入力してください。
+      </div>
+
+      <input
+        id="adminCode"
+        class="code-input"
+        type="password"
+        inputmode="text"
+        autocomplete="off"
+        placeholder="管理者コード"
+      >
+
+      <button
+        class="primary-btn"
+        onclick="loginAdmin()">
+        管理画面へ
+      </button>
+
+      <button
+        class="primary-btn"
+        style="background:#eef1f5;color:#273246;margin-top:8px;"
+        onclick="showUserScreen()">
+        戻る
+      </button>
+
+      <div id="adminError" class="error"></div>
+
+    </div>
+
+  </div>
+
+</div>
+
+
+<!-- =========================
+     管理画面
+========================= -->
+
+<div id="adminScreen" class="admin-screen">
+
+  <header class="admin-header">
+    <div class="admin-header-inner">
+
+      <div class="admin-title">
+        管理画面
+      </div>
+
+      <button
+        class="back-btn"
+        onclick="showUserScreen()">
+        利用画面へ戻る
+      </button>
+
+    </div>
+  </header>
+
+  <main class="admin-main">
+
+    <div class="admin-panel">
+
+      <div class="admin-panel-title">
+        お知らせ管理
+      </div>
+
+      <div class="admin-menu">
+
+        <button onclick="adminAction('add')">
+          ＋ お知らせ追加
+        </button>
+
+        <button onclick="adminAction('edit')">
+          お知らせ編集
+        </button>
+
+        <button onclick="adminAction('delete')">
+          お知らせ削除
+        </button>
+
+        <button onclick="adminAction('reload')">
+          データ更新
+        </button>
+
+      </div>
+
+    </div>
+
+
+    <div class="admin-panel">
+
+      <div class="admin-panel-title">
+        端末管理
+      </div>
+
+      <div class="admin-menu">
+
+        <button onclick="adminAction('devices')">
+          登録端末一覧
+        </button>
+
+        <button onclick="adminAction('disable')">
+          端末を無効化
+        </button>
+
+      </div>
+
+    </div>
+
+  </main>
+
+</div>
+
+
+<div id="toast" class="toast"></div>
+
+
 <script>
-const GAS_URL = "https://script.google.com/macros/s/AKfycbxoNoQf0sHjs3uhq56gYuxWmDvmdiheV3WI8j5BquSWUuNJI6U10Sql6oq2mvnkhcWLVA/exec";
-const TOKEN_KEY = "fire_notice_device_token";
 
-let deviceToken = localStorage.getItem(TOKEN_KEY) || "";
+/* =====================================================
+   設定
+===================================================== */
 
-function api(url, options){
-  return fetch(url, options).then(r => {
-    if(!r.ok) throw new Error("通信エラー");
-    return r.json();
-  });
+/*
+ * GAS WebアプリURLをここに入れる
+ *
+ * 例：
+ * const GAS_URL =
+ *   "https://script.google.com/macros/s/AKfycbxoNoQf0sHjs3uhq56gYuxWmDvmdiheV3WI8j5BquSWUuNJI6U10Sql6oq2mvnkhcWLVA/exec";
+ */
+const GAS_URL = "";
+
+
+/* =====================================================
+   端末ID
+===================================================== */
+
+const DEVICE_KEY = "消防団お知らせ_device_id";
+
+function getDeviceId(){
+
+  let id = localStorage.getItem(DEVICE_KEY);
+
+  if(!id){
+
+    id =
+      "D-" +
+      Date.now().toString(36) +
+      "-" +
+      Math.random().toString(36).substring(2,10);
+
+    localStorage.setItem(DEVICE_KEY,id);
+  }
+
+  return id;
 }
+
+
+/* =====================================================
+   初期表示
+===================================================== */
+
+document.addEventListener("DOMContentLoaded",()=>{
+
+  getDeviceId();
+
+  if(localStorage.getItem("notice_device_registered") === "1"){
+    showUserScreen();
+    loadNotices();
+  }else{
+    showRegisterScreen();
+  }
+
+});
+
+
+/* =====================================================
+   画面切り替え
+===================================================== */
+
+function hideAll(){
+
+  document.getElementById("userScreen").style.display="none";
+  document.getElementById("registerScreen").style.display="none";
+  document.getElementById("adminLoginScreen").style.display="none";
+  document.getElementById("adminScreen").style.display="none";
+
+}
+
+function showUserScreen(){
+
+  hideAll();
+
+  document.getElementById("userScreen").style.display="block";
+
+  loadNotices();
+
+}
+
+function showRegisterScreen(){
+
+  hideAll();
+
+  document.getElementById("registerScreen").style.display="block";
+
+}
+
+function showAdminLogin(){
+
+  hideAll();
+
+  document.getElementById("adminLoginScreen").style.display="block";
+
+  document.getElementById("adminCode").value="";
+  document.getElementById("adminError").textContent="";
+
+}
+
+function showAdminScreen(){
+
+  hideAll();
+
+  document.getElementById("adminScreen").style.display="block";
+
+}
+
+
+/* =====================================================
+   初回端末登録
+===================================================== */
 
 async function registerDevice(){
-  const code = document.getElementById("regcode").value.trim();
-  const msg = document.getElementById("regmsg");
-  if(!code){ msg.textContent="登録コードを入力してください。"; return; }
-  msg.textContent="登録中...";
-  try{
-    const r = await api(GAS_URL,{
-      method:"POST",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({action:"register",code})
-    });
-    if(!r.ok) throw new Error(r.message || "登録できませんでした");
-    deviceToken = r.token;
-    localStorage.setItem(TOKEN_KEY,deviceToken);
-    document.getElementById("registerOverlay").style.display="none";
-    loadNotices();
-  }catch(e){
-    msg.textContent=e.message || "登録に失敗しました。";
+
+  const code =
+    document.getElementById("registerCode").value.trim();
+
+  const error =
+    document.getElementById("registerError");
+
+  error.textContent="";
+
+  if(!code){
+
+    error.textContent="登録コードを入力してください。";
+    return;
+
   }
+
+  const button =
+    document.querySelector("#registerScreen .primary-btn");
+
+  button.disabled=true;
+  button.textContent="登録中…";
+
+  try{
+
+    const result =
+      await gasRequest({
+        action:"registerDevice",
+        code:code,
+        deviceId:getDeviceId()
+      });
+
+    if(result && result.success){
+
+      localStorage.setItem(
+        "notice_device_registered",
+        "1"
+      );
+
+      showToast("この端末を登録しました");
+
+      showUserScreen();
+
+    }else{
+
+      error.textContent =
+        result?.message ||
+        "登録コードが正しくありません。";
+
+    }
+
+  }catch(e){
+
+    console.error(e);
+
+    error.textContent =
+      "通信に失敗しました。時間をおいて再度お試しください。";
+
+  }finally{
+
+    button.disabled=false;
+    button.textContent="この端末を登録";
+
+  }
+
 }
+
+
+/* =====================================================
+   お知らせ取得
+===================================================== */
 
 async function loadNotices(){
-  if(!deviceToken) return;
+
+  const list =
+    document.getElementById("noticeList");
+
+  list.innerHTML=`
+    <div class="loading">
+      <div class="spinner"></div>
+      読み込み中…
+    </div>
+  `;
+
   try{
-    const r = await api(GAS_URL+"?action=list&token="+encodeURIComponent(deviceToken));
-    if(!r.ok){
-      localStorage.removeItem(TOKEN_KEY);
-      deviceToken="";
-      document.getElementById("registerOverlay").style.display="flex";
-      return;
+
+    const result =
+      await gasRequest({
+        action:"getNotices",
+        deviceId:getDeviceId()
+      });
+
+    if(!result || !result.success){
+
+      throw new Error(
+        result?.message || "取得失敗"
+      );
+
     }
-    renderNotices(r.notices || []);
+
+    const notices =
+      Array.isArray(result.notices)
+        ? result.notices
+        : [];
+
+    renderNotices(notices);
+
   }catch(e){
-    document.getElementById("noticeList").innerHTML='<div class="empty">お知らせを取得できませんでした。</div>';
+
+    console.error(e);
+
+    list.innerHTML=`
+      <div class="empty">
+        お知らせを取得できませんでした。<br>
+        <button
+          onclick="loadNotices()"
+          style="
+            margin-top:14px;
+            padding:9px 15px;
+            border:1px solid #ccd3dd;
+            background:#fff;
+            border-radius:9px;
+          ">
+          再読み込み
+        </button>
+      </div>
+    `;
+
   }
+
 }
 
-function renderNotices(list){
-  const root=document.getElementById("noticeList");
-  if(!list.length){
-    root.innerHTML='<div class="empty">現在、お知らせはありません。</div>';
+
+/* =====================================================
+   お知らせ表示
+===================================================== */
+
+function renderNotices(notices){
+
+  const list =
+    document.getElementById("noticeList");
+
+  if(!notices.length){
+
+    list.innerHTML=`
+      <div class="empty">
+        現在、お知らせはありません。
+      </div>
+    `;
+
     return;
   }
-  root.innerHTML=list.map((n,i)=>{
-    const soon=n.soon ? '<span class="badge">期日間近</span>':'';
-    const important=n.important ? '<span class="badge">重要</span>':'';
-    const file=n.fileId ? `<div class="attach"><button onclick="event.stopPropagation();openPrivateFile('${escapeAttr(n.fileId)}')">${escapeHtml(n.fileName || "添付資料を開く")}</button></div>`:"";
-    return `<article class="card ${n.soon?'soon':''}" onclick="this.classList.toggle('open')">
-      <div class="meta">${escapeHtml(n.date||"")}${n.due?'　期日：'+escapeHtml(n.due):''}</div>
-      <div class="title">${escapeHtml(n.title||"")}${soon}${important}</div>
-      <div class="body">${escapeHtml(n.body||"")}${file}</div>
-    </article>`;
-  }).join("");
+
+
+  const today =
+    startOfDay(new Date());
+
+
+  const normalized =
+    notices.map((notice,index)=>{
+
+      const due =
+        parseDate(
+          notice.dueDate ||
+          notice.期日 ||
+          notice.deadline
+        );
+
+      const days =
+        due
+          ? diffDays(today,due)
+          : null;
+
+      /*
+       * 3日前〜当日
+       */
+      const urgent =
+        days !== null &&
+        days >= 0 &&
+        days <= 3;
+
+      const expired =
+        days !== null &&
+        days < 0;
+
+      return {
+        ...notice,
+        _index:index,
+        _due:due,
+        _days:days,
+        _urgent:urgent,
+        _expired:expired
+      };
+
+    });
+
+
+  /*
+   * 3日前〜当日は上位。
+   * それ以外は元の登録順。
+   */
+  normalized.sort((a,b)=>{
+
+    if(a._urgent && !b._urgent) return -1;
+    if(!a._urgent && b._urgent) return 1;
+
+    return a._index - b._index;
+
+  });
+
+
+  list.innerHTML =
+    normalized
+      .map(createNoticeCard)
+      .join("");
+
 }
 
-async function openPrivateFile(id){
-  try{
-    const r=await api(GAS_URL+"?action=file&token="+encodeURIComponent(deviceToken)+"&id="+encodeURIComponent(id));
-    if(!r.ok) throw new Error(r.message||"ファイルを取得できませんでした");
-    const bin=atob(r.data);
-    const bytes=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++) bytes[i]=bin.charCodeAt(i);
-    const blob=new Blob([bytes],{type:r.mimeType||"application/octet-stream"});
-    const url=URL.createObjectURL(blob);
-    window.open(url,"_blank");
-  }catch(e){ alert(e.message||"ファイルを開けませんでした"); }
-}
 
-async function adminLogin(){
-  const pw=document.getElementById("adminpw").value;
-  if(!pw) return;
-  try{
-    const r=await api(GAS_URL+"?action=login&password="+encodeURIComponent(pw));
-    if(!r.ok) throw new Error("パスワードが違います");
-    document.getElementById("adminPanel").style.display="block";
-    loadAdminList();
-  }catch(e){ alert(e.message); }
-}
+/* =====================================================
+   カード生成
+===================================================== */
 
-async function loadAdminList(){
-  const pw=document.getElementById("adminpw").value;
-  const r=await api(GAS_URL+"?action=listAdmin&password="+encodeURIComponent(pw));
-  if(!r.ok){ alert(r.message||"取得できません"); return; }
-  document.getElementById("adminList").innerHTML=(r.notices||[]).map((n,i)=>
-    `<div class="card"><b>${escapeHtml(n.title||"")}</b><div class="small">${escapeHtml(n.date||"")}</div>
-    <button class="secondary" onclick='editNotice(${i},${JSON.stringify(n)})'>編集</button>
-    <button class="secondary" onclick="deleteNotice(${i})">削除</button></div>`
-  ).join("");
-}
+function createNoticeCard(notice){
 
-function editNotice(i,n){
-  document.getElementById("editIndex").value=i;
-  document.getElementById("date").value=n.date||"";
-  document.getElementById("due").value=n.due||"";
-  document.getElementById("title").value=n.title||"";
-  document.getElementById("body").value=n.body||"";
-  document.getElementById("important").checked=!!n.important;
-  document.getElementById("fileinfo").textContent=n.fileName ? "現在の添付: "+n.fileName : "";
-  window.scrollTo({top:document.body.scrollHeight,behavior:"smooth"});
-}
+  const title =
+    escapeHtml(
+      notice.title ||
+      notice.タイトル ||
+      "無題のお知らせ"
+    );
 
-function clearForm(){
-  ["date","due","title","body","editIndex"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("important").checked=false;
-  document.getElementById("file").value="";
-  document.getElementById("fileinfo").textContent="";
-}
+  const body =
+    escapeHtml(
+      notice.body ||
+      notice.本文 ||
+      ""
+    );
 
-async function saveNotice(){
-  const pw=document.getElementById("adminpw").value;
-  const f=document.getElementById("file").files[0];
-  let fileData=null;
-  if(f){
-    const buf=await f.arrayBuffer();
-    let binary="";
-    const bytes=new Uint8Array(buf);
-    const chunk=0x8000;
-    for(let i=0;i<bytes.length;i+=chunk){
-      binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
-    }
-    fileData={name:f.name,mimeType:f.type||"application/octet-stream",data:btoa(binary)};
+  const postDate =
+    formatDate(
+      parseDate(
+        notice.postDate ||
+        notice.掲載日
+      )
+    );
+
+  const dueDate =
+    formatDate(notice._due);
+
+
+  let badges="";
+
+
+  if(
+    notice.important === true ||
+    notice.important === "true" ||
+    notice.重要 === true ||
+    notice.重要 === "TRUE" ||
+    notice.重要 === "○"
+  ){
+
+    badges +=
+      `<span class="badge badge-important">重要</span>`;
+
   }
-  const payload={
-    action:"save",
-    password:pw,
-    index:document.getElementById("editIndex").value,
-    date:document.getElementById("date").value,
-    due:document.getElementById("due").value,
-    title:document.getElementById("title").value,
-    body:document.getElementById("body").value,
-    important:document.getElementById("important").checked,
-    file:fileData
-  };
+
+
+  if(notice._urgent){
+
+    const text =
+      notice._days === 0
+        ? "本日期限"
+        : `あと${notice._days}日`;
+
+    badges +=
+      `<span class="badge badge-urgent">${text}</span>`;
+
+  }
+
+
+  if(notice._expired){
+
+    badges +=
+      `<span class="badge badge-expired">期限終了</span>`;
+
+  }
+
+
+  let fileHtml="";
+
+  const fileUrl =
+    notice.fileUrl ||
+    notice.fileURL ||
+    notice.添付URL ||
+    notice.url ||
+    "";
+
+  const fileName =
+    escapeHtml(
+      notice.fileName ||
+      notice.file名 ||
+      "添付ファイル"
+    );
+
+
+  if(fileUrl){
+
+    fileHtml=`
+      <div class="notice-file">
+        <a
+          class="file-link"
+          href="${escapeAttr(fileUrl)}"
+          target="_blank"
+          rel="noopener">
+          📎 ${fileName}
+        </a>
+      </div>
+    `;
+
+  }
+
+
+  const period =
+    postDate || dueDate
+      ? `
+        <div class="notice-period">
+          ${postDate ? `掲載日：${postDate}` : ""}
+          ${postDate && dueDate ? "　" : ""}
+          ${dueDate ? `期日：${dueDate}` : ""}
+        </div>
+      `
+      : "";
+
+
+  return `
+    <article
+      class="
+        notice-card
+        ${notice._urgent ? "urgent" : ""}
+        ${notice._expired ? "expired" : ""}
+      ">
+
+      <div class="notice-top">
+
+        <div class="notice-date">
+          ${postDate || ""}
+        </div>
+
+        <div class="notice-status">
+          ${badges}
+        </div>
+
+      </div>
+
+      <h2 class="notice-title">
+        ${title}
+      </h2>
+
+      ${
+        body
+          ? `<div class="notice-body">${body}</div>`
+          : ""
+      }
+
+      ${fileHtml}
+
+      ${period}
+
+    </article>
+  `;
+
+}
+
+
+/* =====================================================
+   管理者ログイン
+===================================================== */
+
+async function loginAdmin(){
+
+  const code =
+    document.getElementById("adminCode").value.trim();
+
+  const error =
+    document.getElementById("adminError");
+
+  error.textContent="";
+
+  if(!code){
+
+    error.textContent="管理者コードを入力してください。";
+    return;
+
+  }
+
+
   try{
-    const r=await api(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
-    if(!r.ok) throw new Error(r.message||"保存できませんでした");
-    alert("保存しました");
-    clearForm(); loadAdminList(); loadNotices();
-  }catch(e){ alert(e.message||"保存に失敗しました"); }
+
+    const result =
+      await gasRequest({
+        action:"adminLogin",
+        code:code,
+        deviceId:getDeviceId()
+      });
+
+
+    if(result && result.success){
+
+      sessionStorage.setItem(
+        "notice_admin_session",
+        result.session ||
+        "1"
+      );
+
+      showAdminScreen();
+
+    }else{
+
+      error.textContent =
+        result?.message ||
+        "管理者コードが正しくありません。";
+
+    }
+
+  }catch(e){
+
+    console.error(e);
+
+    error.textContent =
+      "通信に失敗しました。";
+
+  }
+
 }
 
-async function deleteNotice(i){
-  if(!confirm("このお知らせを削除しますか？")) return;
-  const pw=document.getElementById("adminpw").value;
-  try{
-    const r=await api(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"delete",password:pw,index:i})});
-    if(!r.ok) throw new Error(r.message||"削除できませんでした");
-    loadAdminList(); loadNotices();
-  }catch(e){ alert(e.message||"削除に失敗しました"); }
+
+/* =====================================================
+   管理操作
+===================================================== */
+
+async function adminAction(action){
+
+  /*
+   * ここは管理画面機能を追加するための入口。
+   * Code.gs側の管理APIと接続可能。
+   */
+
+  if(action === "reload"){
+
+    showToast("更新しています…");
+
+    await loadNotices();
+
+    return;
+
+  }
+
+
+  if(action === "add"){
+
+    showToast("お知らせ追加画面を開きます");
+
+    /*
+     * 今後ここに追加画面を接続
+     */
+
+    return;
+
+  }
+
+
+  if(action === "edit"){
+
+    showToast("お知らせ編集画面を開きます");
+
+    return;
+
+  }
+
+
+  if(action === "delete"){
+
+    showToast("お知らせ削除画面を開きます");
+
+    return;
+
+  }
+
+
+  if(action === "devices"){
+
+    showToast("登録端末一覧を開きます");
+
+    return;
+
+  }
+
+
+  if(action === "disable"){
+
+    showToast("端末管理を開きます");
+
+    return;
+
+  }
+
 }
 
-function escapeHtml(s){
-  return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-function escapeAttr(s){return escapeHtml(s).replace(/`/g,"&#96;");}
 
-if(!GAS_URL.includes("ここに")) loadNotices();
+/* =====================================================
+   GAS通信
+===================================================== */
+
+async function gasRequest(data){
+
+  if(!GAS_URL){
+
+    /*
+     * GAS URL未設定時
+     */
+    throw new Error(
+      "GAS_URLが設定されていません"
+    );
+
+  }
+
+
+  const response =
+    await fetch(
+      GAS_URL,
+      {
+        method:"POST",
+        headers:{
+          "Content-Type":
+            "text/plain;charset=utf-8"
+        },
+        body:JSON.stringify(data)
+      }
+    );
+
+
+  if(!response.ok){
+
+    throw new Error(
+      "HTTP " + response.status
+    );
+
+  }
+
+
+  return await response.json();
+
+}
+
+
+/* =====================================================
+   日付処理
+===================================================== */
+
+function parseDate(value){
+
+  if(!value) return null;
+
+  if(value instanceof Date){
+
+    return startOfDay(value);
+
+  }
+
+
+  const str =
+    String(value).trim();
+
+  if(!str) return null;
+
+
+  const normalized =
+    str
+      .replace(/\//g,"-")
+      .replace(/\./g,"-");
+
+
+  const date =
+    new Date(normalized);
+
+
+  if(isNaN(date.getTime())){
+
+    return null;
+
+  }
+
+
+  return startOfDay(date);
+
+}
+
+
+function startOfDay(date){
+
+  const d =
+    new Date(date);
+
+  d.setHours(0,0,0,0);
+
+  return d;
+
+}
+
+
+function diffDays(from,to){
+
+  const ms =
+    to.getTime() -
+    from.getTime();
+
+  return Math.round(
+    ms / 86400000
+  );
+
+}
+
+
+function formatDate(date){
+
+  if(!date) return "";
+
+  return (
+    date.getFullYear() +
+    "/" +
+    String(
+      date.getMonth()+1
+    ).padStart(2,"0") +
+    "/" +
+    String(
+      date.getDate()
+    ).padStart(2,"0")
+  );
+
+}
+
+
+/* =====================================================
+   HTMLエスケープ
+===================================================== */
+
+function escapeHtml(value){
+
+  return String(value ?? "")
+    .replace(/&/g,"&amp;")
+    .replace(/</g,"&lt;")
+    .replace(/>/g,"&gt;")
+    .replace(/"/g,"&quot;")
+    .replace(/'/g,"&#039;");
+
+}
+
+
+function escapeAttr(value){
+
+  return escapeHtml(value);
+
+}
+
+
+/* =====================================================
+   TOAST
+===================================================== */
+
+let toastTimer=null;
+
+function showToast(message){
+
+  const toast =
+    document.getElementById("toast");
+
+  toast.textContent=message;
+
+  toast.classList.add("show");
+
+  clearTimeout(toastTimer);
+
+  toastTimer =
+    setTimeout(()=>{
+      toast.classList.remove("show");
+    },2200);
+
+}
+
 </script>
+
 </body>
 </html>
+```
