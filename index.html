@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v3</title>
+<title>Board v4</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -283,7 +283,12 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 <div class="field" style="margin-top:9px"><label>タイトル</label><input id="fTitle" class="input" type="text" maxlength="100" placeholder="例：訓練のお知らせ"></div>
 <div class="field" style="margin-top:9px"><label>本文</label><textarea id="fBody" class="textarea" placeholder="お知らせ内容"></textarea></div>
 <label class="check"><input id="fImportant" type="checkbox"> 重要なお知らせ</label>
-<div class="field" style="margin-top:12px"><label>添付ファイル（任意）</label><input id="fFile" class="input" type="file" accept="image/*,.pdf,application/pdf"></div>
+<div class="field" style="margin-top:12px"><label>添付ファイル（任意）</label>
+<div id="currentFileArea" style="display:none;margin:7px 0;padding:9px 11px;background:#f3f6fa;border:1px solid #d8e0e8;border-radius:10px;font-size:13px"></div>
+<input id="fFile" class="input" type="file" accept="image/*,.pdf,application/pdf">
+<label id="removeFileLabel" class="check" style="display:none;margin-top:7px"><input id="fRemoveFile" type="checkbox"> 添付ファイルを削除</label>
+<div style="font-size:12px;color:#777;margin-top:5px">新しいファイルを選ぶと現在のファイルと差し替わります。</div>
+</div>
 <button class="primary-btn" onclick="saveNotice()">保存する</button>
 <button class="secondary-btn" onclick="clearForm()">新規入力に戻す</button>
 <div id="saveError" class="error"></div>
@@ -518,6 +523,23 @@ function renderAdminNotices(){
     </div>`).join("");
 }
 
+function resetCurrentFileUI(){
+  const a=document.getElementById("currentFileArea");
+  const l=document.getElementById("removeFileLabel");
+  const r=document.getElementById("fRemoveFile");
+  if(a){a.style.display="none";a.textContent="";}
+  if(l)l.style.display="none";
+  if(r)r.checked=false;
+}
+function showCurrentFileUI(name){
+  const a=document.getElementById("currentFileArea");
+  const l=document.getElementById("removeFileLabel");
+  const r=document.getElementById("fRemoveFile");
+  if(a){a.style.display="block";a.innerHTML="📎 <strong>現在のファイル：</strong> "+esc(name||"添付ファイル");}
+  if(l)l.style.display="block";
+  if(r)r.checked=false;
+}
+
 function editNotice(i){
   const n=adminNotices[i];editingIndex=(n.row||0)-2;
   document.getElementById("fDate").value=n.date||"";
@@ -527,6 +549,8 @@ function editNotice(i){
   document.getElementById("fTitle").value=n.title||"";
   document.getElementById("fBody").value=n.body||"";
   document.getElementById("fImportant").checked=!!n.important;
+  document.getElementById("fFile").value="";
+  if(n.fileId) showCurrentFileUI(n.fileName); else resetCurrentFileUI();
   document.getElementById("saveError").textContent="";
   window.scrollTo({top:0,behavior:"smooth"});
 }
@@ -550,6 +574,7 @@ function clearForm(){
   document.getElementById("fBody").value="";
   document.getElementById("fImportant").checked=false;
   document.getElementById("fFile").value="";
+  resetCurrentFileUI();
   document.getElementById("saveError").textContent="";
 }
 
@@ -567,7 +592,8 @@ async function saveNotice(){
     due:noDue?"":document.getElementById("fDue").value,
     title,
     body:document.getElementById("fBody").value,
-    important:document.getElementById("fImportant").checked
+    important:document.getElementById("fImportant").checked,
+    removeFile:document.getElementById("fRemoveFile")?.checked===true
   };
 
   const file=document.getElementById("fFile").files[0];
