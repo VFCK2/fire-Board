@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v4</title>
+<title>Board v5</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -512,7 +512,13 @@ async function loadAdminNotices(){
 function renderAdminNotices(){
   const list=document.getElementById("adminNoticeList");
   if(!adminNotices.length){list.innerHTML='<div class="empty">登録されたお知らせはありません。</div>';return}
-  list.innerHTML=adminNotices.map((n,i)=>`
+  // 管理画面は掲載日の新しい順（今日→昨日→それ以前）
+  const sorted=adminNotices.map((n,i)=>({n:n,index:i})).sort((a,b)=>{
+    const ad=a.n.date||"0000-00-00", bd=b.n.date||"0000-00-00";
+    if(ad!==bd)return ad>bd?-1:1;
+    return 0;
+  });
+  list.innerHTML=sorted.map(({n,index:i})=>`
     <div class="admin-item ${n.soon?"urgent":""}">
       <div class="admin-item-title">${esc(n.title)}</div>
       <div class="admin-item-meta">掲載 ${esc(n.date||"-")}　期日 ${n.due?esc(n.due):"無期限"}${n.important?"　重要":""}</div>
