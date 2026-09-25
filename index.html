@@ -4,7 +4,7 @@
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
 <meta name="theme-color" content="#172033">
-<title>Board v5</title>
+<title>消防団 お知らせ</title>
 <style>
 *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
 html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
@@ -225,7 +225,7 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
 <div id="userScreen">
 <header class="user-header">
   <div class="user-header-inner">
-    <h1 class="page-title">VFC Board</h1>
+    <h1 class="page-title">お知らせ</h1>
     <button class="admin-entry" onclick="showAdminLogin()">管理</button>
   </div>
 </header>
@@ -235,6 +235,21 @@ body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
   <button class="admin-entry" onclick="showAdminLogin()">管理</button>
 </div>
 <div id="noticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
+<div style="text-align:center;margin:18px 0 4px">
+  <button class="secondary-btn" style="max-width:240px" onclick="showPastNotices()">過去のお知らせ</button>
+</div>
+</main>
+</div>
+
+<div id="pastScreen" class="screen" style="display:none">
+<header class="user-header">
+  <div class="user-header-inner">
+    <h1 class="page-title">過去のお知らせ</h1>
+    <button class="admin-entry" onclick="showUserScreen()">戻る</button>
+  </div>
+</header>
+<main class="main">
+  <div id="pastNoticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
 </main>
 </div>
 
@@ -315,7 +330,7 @@ let adminNotices=[];
 function getToken(){return localStorage.getItem(DEVICE_KEY)||""}
 
 function showOnly(id){
-  ["userScreen","registerScreen","adminLoginScreen","adminScreen"].forEach(x=>{
+  ["userScreen","pastScreen","registerScreen","adminLoginScreen","adminScreen"].forEach(x=>{
     document.getElementById(x).style.display="none";
   });
   document.getElementById(id).style.display=id==="adminScreen"?"block":"block";
@@ -358,6 +373,47 @@ async function registerDevice(){
   finally{btn.disabled=false;btn.textContent="この端末を登録"}
 }
 
+function todayYmd(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function showPastNotices(){
+  showOnly("pastScreen");
+  loadPastNotices();
+}
+
+async function loadPastNotices(){
+  const list=document.getElementById("pastNoticeList");
+  const token=getToken();
+  if(!token){showRegisterScreen();return}
+  list.innerHTML='<div class="loading"><div class="spinner"></div>読み込み中…</div>';
+  try{
+    const res=await requestGet({action:"list",token});
+    if(!res.ok){
+      if((res.message||"").includes("登録されていません")){localStorage.removeItem(DEVICE_KEY);showRegisterScreen();return}
+      throw new Error(res.message||"取得失敗");
+    }
+    renderPastNotices(res.notices||[]);
+  }catch(e){
+    list.innerHTML='<div class="empty">過去のお知らせを取得できませんでした。<br><button class="secondary-btn" style="max-width:180px" onclick="loadPastNotices()">再読み込み</button></div>';
+  }
+}
+
+function renderPastNotices(arr){
+  const today=todayYmd();
+  const past=arr.filter(n=>n.due && n.due<today).sort((a,b)=>{
+    const ad=a.date||"0000-00-00",bd=b.date||"0000-00-00";
+    return ad===bd?0:(ad>bd?-1:1);
+  });
+  const list=document.getElementById("pastNoticeList");
+  if(!past.length){list.innerHTML='<div class="empty">過去のお知らせはありません。</div>';return}
+  list.innerHTML=past.map((n,i)=>renderNoticeCard(n,i,true)).join("");
+}
+
 async function loadUserNotices(){
   const list=document.getElementById("noticeList");
   const token=getToken();
@@ -375,13 +431,41 @@ async function loadUserNotices(){
   }
 }
 
+function renderNoticeCard(n,i,isPast=false){
+  const urgent=!isPast && !!n.soon,expired=!!(n.due&&daysUntil(n.due)<0);
+  let badges="";
+  if(n.important)badges+='<span class="badge badge-important">重要</span>';
+  if(n.fileId)badges+='<span class="attachment-badge" title="添付ファイルあり" aria-label="添付ファイルあり">📎</span>';
+  if(urgent)badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
+  if(expired)badges+='<span class="badge badge-expired">期限終了</span>';
+  const preview=n.fileId?`<div id="file-preview-${isPast?"past-":""}${i}" class="file-preview" data-file-id="${esc(n.fileId)}" data-file-name="${esc(n.fileName||"添付ファイル")}" data-mime="${esc(n.mimeType||"")}">
+          <button type="button" class="file-download-btn file-download-initial" onclick="downloadPrivateFile(event,this)">📎 添付ファイルをダウンロード</button>
+        </div>`:"";
+  const detailId=`notice-detail-${isPast?"past-":""}${i}`;
+  const previewId=n.fileId?`'file-preview-${isPast?"past-":""}${i}'`:"null";
+  const period=(n.date||n.due)?`<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):"期日：無期限"}</div>`:"";
+  return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}">
+      <button type="button" class="notice-summary-btn" onclick="toggleNoticeById('${detailId}',this,${previewId})">
+        <span class="notice-summary"><span class="notice-summary-main">
+          <span class="notice-top" style="margin-bottom:4px"><span class="notice-date">${esc(n.date||"")}</span><span class="notice-status">${badges}</span></span>
+          <span class="notice-title" style="display:block;margin-bottom:0">${esc(n.title)}</span>
+        </span><span class="notice-chevron" aria-hidden="true">⌄</span></span>
+      </button>
+      <div id="${detailId}" class="notice-details">
+        ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}${preview}${period}
+      </div>
+    </article>`;
+}
+
 function renderUserNotices(arr){
+  const today=todayYmd();
+  const current=arr.filter(n=>!n.due || n.due>=today);
   const list=document.getElementById("noticeList");
-  if(!arr.length){
+  if(!current.length){
     list.innerHTML='<div class="empty">現在、お知らせはありません。</div>';
     return;
   }
-  const sorted=[...arr].sort((a,b)=>{
+  const sorted=[...current].sort((a,b)=>{
     const au=!!a.soon,bu=!!b.soon;
     if(au&&!bu)return -1;if(!au&&bu)return 1;
     if(au&&bu){const ad=a.due||"9999-12-31",bd=b.due||"9999-12-31";if(ad!==bd)return ad<bd?-1:1;}
@@ -389,30 +473,9 @@ function renderUserNotices(arr){
     if(ad!==bd)return ad>bd?-1:1;
     return 0;
   });
-  list.innerHTML=sorted.map((n,i)=>{
-    const urgent=!!n.soon,expired=n.due&&daysUntil(n.due)<0;
-    let badges="";
-    if(n.important)badges+='<span class="badge badge-important">重要</span>';
-    if(n.fileId)badges+='<span class="attachment-badge" title="添付ファイルあり" aria-label="添付ファイルあり">📎</span>';
-    if(urgent)badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
-    if(expired)badges+='<span class="badge badge-expired">期限終了</span>';
-    const preview=n.fileId?`<div id="file-preview-${i}" class="file-preview" data-file-id="${esc(n.fileId)}" data-file-name="${esc(n.fileName||"添付ファイル")}" data-mime="${esc(n.mimeType||"")}">
-          <button type="button" class="file-download-btn file-download-initial" onclick="downloadPrivateFile(event,this)">📎 添付ファイルをダウンロード</button>
-        </div>`:"";
-    const period=(n.date||n.due)?`<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):"期日：無期限"}</div>`:"";
-    return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}">
-      <button type="button" class="notice-summary-btn" onclick="toggleNoticeById('notice-detail-${i}',this,${n.fileId?`'file-preview-${i}'`:"null"})">
-        <span class="notice-summary"><span class="notice-summary-main">
-          <span class="notice-top" style="margin-bottom:4px"><span class="notice-date">${esc(n.date||"")}</span><span class="notice-status">${badges}</span></span>
-          <span class="notice-title" style="display:block;margin-bottom:0">${esc(n.title)}</span>
-        </span><span class="notice-chevron" aria-hidden="true">⌄</span></span>
-      </button>
-      <div id="notice-detail-${i}" class="notice-details">
-        ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}${preview}${period}
-      </div>
-    </article>`;
-  }).join("");
+  list.innerHTML=sorted.map((n,i)=>renderNoticeCard(n,i,false)).join("");
 }
+
 function toggleNoticeById(id,btn,previewId){
   const detail=document.getElementById(id);
   if(!detail)return;
