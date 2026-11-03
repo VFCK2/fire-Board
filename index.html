@@ -3,459 +3,737 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
-<meta name="theme-color" content="#173b5c">
+<meta name="theme-color" content="#172033">
 <title>Board</title>
 <style>
-*{box-sizing:border-box}
-:root{
-  --navy:#173b5c;
-  --navy2:#0f2d47;
-  --page:#e9f2f8;
-  --card:#fff;
-  --text:#1d2a34;
-  --muted:#71808c;
-  --line:#dbe4ea;
-  --blue:#1976d2;
-  --red:#e53935;
-  --orange:#f59e0b;
-  --green:#26a65b;
+*{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+html,body{margin:0;padding:0;font-family:-apple-system,BlinkMacSystemFont,"Noto Sans JP","Yu Gothic",sans-serif;color:#18202d;background:#dfe4ea}
+body{min-height:100vh}button,input,textarea{font:inherit}button{cursor:pointer}
+.header{position:sticky;top:0;z-index:20;background:#172033;color:#fff;box-shadow:0 2px 10px rgba(0,0,0,.18)}
+.header-inner{max-width:760px;margin:auto;min-height:62px;padding:9px 14px;display:flex;align-items:center;justify-content:space-between;gap:10px}
+.logo{font-size:20px;font-weight:800}.header-actions{display:flex;gap:7px}
+.header-btn,.back-btn{border:1px solid rgba(255,255,255,.24);background:rgba(255,255,255,.09);color:#fff;border-radius:9px;padding:8px 11px;font-size:13px}
+.main,.admin-main{max-width:760px;margin:auto;padding:17px 13px 40px}
+.page-title{font-size:24px;font-weight:800;margin:3px 2px 5px}
+.user-title-row{display:flex;align-items:center;justify-content:space-between;gap:10px;margin-bottom:17px}
+.user-title-row .page-title{margin:3px 2px 0}
+.admin-entry{border:1px solid #c5ccd6;background:#fff;color:#4b5666;border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700;box-shadow:0 2px 6px rgba(20,30,45,.06)}
+.admin-entry:active{transform:scale(.97)}
+.page-subtitle{display:none}
+.notice-list{display:flex;flex-direction:column;gap:12px}
+.notice-card{background:#fff;border:1px solid #d9dfe7;border-radius:16px;padding:15px;box-shadow:0 3px 10px rgba(20,30,45,.07)}
+.notice-card{overflow:hidden}
+.notice-summary-btn{display:block;width:100%;border:0;background:transparent;padding:0;text-align:left;cursor:pointer;color:inherit}
+.notice-card:active{transform:scale(.995)}
+.notice-summary{display:flex;align-items:center;gap:10px}
+.notice-summary-main{min-width:0;flex:1}
+.notice-chevron{flex:0 0 auto;width:30px;height:30px;border-radius:50%;background:#f0f2f5;display:flex;align-items:center;justify-content:center;color:#596577;font-size:16px;transition:transform .2s,background .2s}
+.notice-card.open .notice-chevron{transform:rotate(180deg);background:#e5e9ee}
+.notice-details{display:none;margin-top:12px;padding-top:12px;border-top:1px solid #e2e6eb}
+.notice-card.open .notice-details{display:block}
+
+
+.notice-card.urgent{background:#fff8df;border:2px solid #efc94d;box-shadow:0 4px 14px rgba(210,165,35,.14)}
+.notice-card.expired{opacity:.68}
+.notice-top{display:flex;align-items:flex-start;justify-content:space-between;gap:8px;margin-bottom:6px}
+.notice-date{font-size:12px;color:#667085;font-weight:600}.notice-status{display:flex;gap:5px;flex-wrap:wrap;justify-content:flex-end}
+.badge{display:inline-flex;align-items:center;min-height:23px;padding:3px 8px;border-radius:999px;font-size:11px;font-weight:800;white-space:nowrap}
+.badge-important{color:#fff;background:#dc3545}.badge-urgent{color:#634c00;background:#ffd86b}.badge-expired{color:#fff;background:#8b95a5}
+.notice-title{font-size:19px;line-height:1.4;font-weight:800;margin:0 0 9px;color:#172033}
+.notice-body{font-size:14px;line-height:1.8;white-space:pre-wrap;word-break:break-word}
+.notice-period{margin-top:12px;padding-top:10px;border-top:1px solid #e6e9ee;color:#687385;font-size:12px}
+.file-link{display:flex;align-items:center;gap:8px;text-decoration:none;color:#2457b8;background:#f2f6ff;border:1px solid #d9e4ff;border-radius:10px;padding:10px 12px;font-size:13px;font-weight:700;margin-top:12px}
+.loading{text-align:center;padding:55px 15px;color:#687385;font-size:14px}.spinner{width:28px;height:28px;margin:0 auto 12px;border:3px solid #dce1e8;border-top-color:#172033;border-radius:50%;animation:spin .8s linear infinite}@keyframes spin{to{transform:rotate(360deg)}}
+.empty,.panel,.form-card{background:#fff;border:1px solid #d9dfe7;border-radius:16px;box-shadow:0 3px 10px rgba(20,30,45,.06)}
+.empty{text-align:center;padding:35px 20px;color:#687385}
+.screen{min-height:100vh}.register-wrap{min-height:100vh;display:flex;align-items:center;justify-content:center;padding:20px;background:#eef1f5}
+.form-card{width:100%;max-width:430px;padding:24px 20px}.form-title{font-size:23px;font-weight:800;margin:0 0 8px}.form-text{font-size:13px;color:#697386;line-height:1.7;margin-bottom:18px}
+.input,.textarea{width:100%;border:1px solid #cbd2dc;border-radius:10px;padding:11px 12px;outline:none;background:#fff}.input{height:48px}.textarea{min-height:120px;resize:vertical}.input:focus,.textarea:focus{border-color:#506b9b;box-shadow:0 0 0 3px rgba(80,107,155,.12)}
+.primary-btn,.secondary-btn,.danger-btn{width:100%;min-height:48px;border:0;border-radius:10px;font-weight:800;margin-top:10px}.primary-btn{background:#172033;color:#fff}.secondary-btn{background:#eef1f5;color:#273246}.danger-btn{background:#dc3545;color:#fff}
+.error{margin-top:11px;color:#d3293d;font-size:13px;line-height:1.6}
+.admin-screen{display:none}.admin-header{background:#172033;color:#fff}.admin-header-inner{max-width:760px;margin:auto;min-height:62px;padding:9px 14px;display:flex;align-items:center;justify-content:space-between}.admin-title{font-size:18px;font-weight:800}
+.admin-main{padding-top:16px}.panel{padding:15px;margin-bottom:13px}.panel-title{font-size:16px;font-weight:800;margin-bottom:12px}
+.admin-list{display:flex;flex-direction:column;gap:9px}.admin-item{border:1px solid #dfe3e9;border-radius:11px;padding:12px;background:#fafbfc}.admin-item.urgent{background:#fff8df;border-color:#efc94d}
+.admin-item-title{font-weight:800;font-size:15px}.admin-item-meta{font-size:11px;color:#687385;margin-top:4px}
+.admin-actions{display:flex;gap:7px;margin-top:9px}.small-btn{flex:1;border:1px solid #ccd3dd;background:#fff;border-radius:8px;padding:8px;font-size:12px;font-weight:700}.small-btn.delete{color:#c62828}
+.form-grid{display:grid;grid-template-columns:1fr 1fr;gap:9px}.field label{display:block;font-size:12px;font-weight:700;margin-bottom:5px}.check{display:flex;align-items:center;gap:7px;font-size:13px;margin-top:12px}.check input{width:18px;height:18px}
+.toast{position:fixed;left:50%;bottom:22px;transform:translate(-50%,20px);z-index:100;max-width:90%;background:#172033;color:#fff;border-radius:10px;padding:11px 16px;font-size:13px;box-shadow:0 6px 20px rgba(0,0,0,.2);opacity:0;pointer-events:none;transition:.2s}.toast.show{opacity:1;transform:translate(-50%,0)}
+@media(max-width:480px){.header-inner{min-height:58px;padding:8px 12px}.logo{font-size:18px}.main,.admin-main{padding:14px 10px 30px}.page-title{font-size:22px}.notice-card{border-radius:14px;padding:13px}.notice-title{font-size:18px}.notice-body{font-size:14px}.form-grid{grid-template-columns:1fr}}
+
+.file-preview{
+  margin-top:14px;
+  width:100%;
+  overflow:hidden;
+  border-radius:0;
+  background:transparent;
 }
-html{scroll-behavior:smooth}
-body{
-  margin:0;
-  background:linear-gradient(180deg,#dfeef7 0,#edf5f9 240px,var(--page) 100%);
-  color:var(--text);
-  font-family:-apple-system,BlinkMacSystemFont,"Segoe UI","Noto Sans JP",sans-serif;
+.file-preview img{
+  display:block;
+  width:100%;
+  height:auto;
+  max-height:none;
+  object-fit:contain;
+  background:transparent;
 }
-header{
-  position:sticky;top:0;z-index:20;
-  background:linear-gradient(135deg,var(--navy),#245a82);
+.file-preview iframe{
+  display:block;
+  width:100%;
+  height:75vh;
+  min-height:420px;
+  border:0;
+  background:#fff;
+}
+.file-preview-label{
+  display:none;
+}
+.file-error{
+  padding:12px;
+  border-radius:10px;
+  background:#fff1f1;
+  color:#b42318;
+  font-size:13px;
+}
+
+.notice-details .file-preview{
+  margin-left:0;
+  margin-right:0;
+  width:100%;
+}
+
+.pdf-download-box{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:12px;
+  border:1px solid #dfe3e9;
+  border-radius:10px;
+  background:#f8fafc;
+}
+.pdf-download-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  width:42px;
+  height:42px;
+  border-radius:8px;
+  background:#172033;
   color:#fff;
-  padding:13px 14px;
-  box-shadow:0 3px 12px #173b5c33;
+  font-size:11px;
+  font-weight:800;
 }
-.header-inner{
-  max-width:720px;margin:auto;
-  display:flex;align-items:center;justify-content:space-between;gap:10px
+.pdf-download-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:40px;
+  padding:0 14px;
+  border-radius:9px;
+  background:#172033;
+  color:#fff;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:700;
 }
-header h1{font-size:20px;margin:0;font-weight:800;letter-spacing:.02em}
-.admin-open{
-  border:1px solid #ffffff88;background:#ffffff12;color:#fff;
-  border-radius:9px;padding:7px 11px;font-size:12px;font-weight:700
-}
-main{max-width:720px;margin:auto;padding:14px 12px 30px}
 
-/* notice cards */
-.card{
-  background:var(--card);
-  border:1px solid #dce7ee;
-  border-radius:15px;
-  margin:11px 0;
-  padding:15px;
-  box-shadow:0 4px 14px #31556b18;
+.user-header{
+  background:#172033;
+  color:#fff;
+  width:100%;
 }
-.notice{
-  position:relative;overflow:hidden;
+.user-header-inner{
+  max-width:760px;
+  min-height:62px;
+  margin:0 auto;
+  padding:9px 14px;
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  box-sizing:border-box;
+}
+.user-header .page-title{
+  color:#fff;
+  margin:0;
+}
+.user-header .admin-entry{
+  color:#fff;
+  border-color:rgba(255,255,255,.45);
+  background:rgba(255,255,255,.08);
+}
+.attachment-badge{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  margin-left:5px;
+  font-size:14px;
+  line-height:1;
+  vertical-align:middle;
+}
+.file-download-box{
+  display:flex;
+  align-items:center;
+  gap:10px;
+  padding:10px 0 0;
+}
+.file-download-icon{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-width:42px;
+  height:38px;
+  padding:0 7px;
+  border-radius:8px;
+  background:#172033;
+  color:#fff;
+  font-size:11px;
+  font-weight:800;
+}
+.file-download-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  min-height:38px;
+  padding:0 13px;
+  border-radius:9px;
+  background:#172033;
+  color:#fff;
+  text-decoration:none;
+  font-size:13px;
+  font-weight:700;
+}
+.file-download-loading{
+  padding:10px 0 0;
+  font-size:13px;
+  color:#667085;
+}
+@media(max-width:480px){
+.user-header-inner{min-height:56px;padding:8px 12px}
+.user-header .page-title{font-size:21px}
+}
+.file-download-initial{
+  width:100%;
+  border:0;
   cursor:pointer;
-  transition:transform .12s,box-shadow .12s;
 }
-.notice:active{transform:scale(.995)}
-.notice::before{
-  content:"";position:absolute;left:0;top:0;bottom:0;width:5px;background:#42a5f5;
+.file-download-initial:disabled{
+  opacity:.65;
+  cursor:wait;
 }
-.notice.soon-3{background:#fff9ef;border-color:#ffdca3}
-.notice.soon-3::before{background:#f6ad1b}
-.notice.soon-2{background:#fff5df;border-color:#ffc766}
-.notice.soon-2::before{background:#f59e0b}
-.notice.soon-1{background:#fff0e9;border-color:#ffb59e}
-.notice.soon-1::before{background:#f4511e}
-.notice.soon-0{background:#ffebee;border-color:#ff9da5}
-.notice.soon-0::before{background:#e53935}
-.notice-top{
-  display:flex;align-items:center;justify-content:space-between;gap:8px;
-  margin-bottom:5px
-}
-.date{font-size:12px;color:#657784}
-.badges{display:flex;flex-wrap:wrap;gap:5px}
-.badge{
-  display:inline-flex;align-items:center;
-  border-radius:999px;padding:4px 9px;
-  font-size:11px;font-weight:800;white-space:nowrap
-}
-.badge.soon{background:#ef5350;color:#fff}
-.badge.important{background:#1976d2;color:#fff}
-.badge.normal{background:#e8f1f7;color:#356078}
-.title{
-  font-size:19px;font-weight:800;line-height:1.35;
-  padding-right:24px;margin:3px 0 6px
-}
-.due-line{font-size:12px;color:#6b7780;margin-top:3px}
-.soon-3 .due-line,.soon-2 .due-line,.soon-1 .due-line,.soon-0 .due-line{
-  color:#b44321;font-weight:700
-}
-.arrow{
-  position:absolute;right:14px;top:50%;
-  transform:translateY(-50%);
-  font-size:25px;color:#2b638d;font-weight:300
-}
-.body{
-  display:none;margin-top:13px;padding-top:13px;
-  border-top:1px solid #dce5ea;line-height:1.75;
-  white-space:pre-wrap
-}
-.notice.open .body{display:block}
-.attach{display:grid;gap:8px;margin-top:12px}
-.attach button{
-  width:100%;text-align:left;border:1px solid #cddbe4;
-  border-radius:10px;padding:10px 12px;background:#f7fafc;color:#1d5b84;
-  font-size:14px;font-weight:650
-}
-.empty{
-  text-align:center;color:#71808c;
-  background:#fff;border:1px solid #dce7ee;
-  border-radius:15px;padding:45px 15px;margin-top:12px;
-  box-shadow:0 4px 14px #31556b12
-}
-
-/* admin */
-#admin{display:none}
-.admin-card{margin-top:14px}
-.admin-head{
-  display:flex;align-items:center;justify-content:space-between;gap:10px;
-  margin-bottom:12px
-}
-.admin-head h2{margin:0;font-size:20px}
-.secondary{
-  border:1px solid #ccd9e1;background:#f6f9fb;color:#29495d;
-  border-radius:9px;padding:9px 12px;font-size:13px;font-weight:700
-}
-.row{display:grid;gap:8px;margin:11px 0}
-label{font-size:13px;font-weight:700;color:#465964}
-input,textarea{
-  width:100%;padding:11px 12px;border:1px solid #cbd8e0;
-  border-radius:9px;font-size:16px;background:#fff;color:#222
-}
-input[type=checkbox]{width:auto;transform:scale(1.15);margin-right:7px}
-.primary{
-  width:100%;padding:12px;border:0;border-radius:10px;
-  background:linear-gradient(135deg,#1f78c8,#175d9c);
-  color:#fff;font-size:16px;font-weight:800
-}
-.green{background:linear-gradient(135deg,#2eaf61,#21894a)}
-.admin-item{
-  background:#fff;border:1px solid #dce5ea;border-radius:12px;
-  padding:12px;margin:9px 0
-}
-.admin-item.soon{border-left:5px solid #ef5350}
-.admin-item-title{font-weight:800;margin-bottom:3px}
-.admin-actions{display:flex;gap:7px;margin-top:9px}
-.admin-actions button{flex:1}
-.fileinfo{font-size:12px;color:#667984;margin-top:5px}
-.small{font-size:12px;color:#73818b;line-height:1.6}
-hr{border:0;border-top:1px solid #e2e8ec;margin:17px 0}
-
-/* overlays */
-.overlay{
-  position:fixed;inset:0;background:#09223599;z-index:100;
-  display:flex;align-items:center;justify-content:center;padding:20px
-}
-.modal{
-  background:#fff;border-radius:17px;padding:23px;
-  width:min(420px,100%);box-shadow:0 15px 45px #0004
-}
-.modal h2{margin:0 0 8px;font-size:21px}
-.modal p{margin:7px 0}
 </style>
 </head>
 <body>
-<header>
-  <div class="header-inner">
-    <h1>消防団 お知らせ</h1>
-    <button class="admin-open" onclick="showAdmin()">管理</button>
+
+<div id="userScreen">
+<header class="user-header">
+  <div class="user-header-inner">
+    <h1 class="page-title">VFC Board</h1>
+    <button class="admin-entry" onclick="showAdminLogin()">管理</button>
   </div>
 </header>
-
-<main>
-  <section id="noticeList"></section>
-
-  <section id="admin" class="card admin-card">
-    <div class="admin-head">
-      <h2>管理者</h2>
-      <button class="secondary" onclick="closeAdmin()">← お知らせ画面に戻る</button>
-    </div>
-
-    <div id="adminPanel">
-      <h3>お知らせ登録・編集</h3>
-      <input type="hidden" id="editIndex">
-      <div class="row"><label>掲載日<input id="date" type="date"></label></div>
-      <div class="row"><label>期日<input id="due" type="date"></label></div>
-      <div class="row"><label>タイトル<input id="title"></label></div>
-      <div class="row"><label>本文<textarea id="body" rows="6"></textarea></label></div>
-      <div class="row">
-        <label><input id="important" type="checkbox">重要</label>
-      </div>
-      <div class="row">
-        <label>PDF / 画像
-          <input id="file" type="file" accept=".pdf,image/*" multiple>
-        </label>
-        <div id="fileinfo" class="fileinfo"></div>
-      </div>
-      <div class="row">
-        <button class="primary green" onclick="saveNotice()">保存</button>
-        <button class="secondary" onclick="clearForm()">新規入力に戻す</button>
-      </div>
-
-      <hr>
-      <h3>登録済みのお知らせ</h3>
-      <div id="adminList"></div>
-    </div>
-  </section>
+<main class="main">
+<div class="user-title-row" style="display:none">
+  <h1 class="page-title">お知らせ</h1>
+  <button class="admin-entry" onclick="showAdminLogin()">管理</button>
+</div>
+<div id="noticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
+<div style="text-align:center;margin:18px 0 4px">
+  <button class="secondary-btn" style="max-width:240px" onclick="showPastNotices()">過去のお知らせ</button>
+</div>
 </main>
-
-<div id="adminOverlay" class="overlay" style="display:none">
-  <div class="modal">
-    <h2>管理者</h2>
-    <p class="small">管理者パスワードを入力してください。</p>
-    <input id="adminpwOverlay" type="password" placeholder="管理者パスワード">
-    <div style="height:12px"></div>
-    <button class="primary" onclick="openAdmin()">管理画面を開く</button>
-    <div style="height:8px"></div>
-    <button class="secondary" style="width:100%" onclick="hideAdmin()">閉じる</button>
-    <p id="adminmsg" class="small"></p>
-  </div>
 </div>
 
-<div id="registerOverlay" class="overlay">
-  <div class="modal">
-    <h2>初回登録</h2>
-    <p>この端末を消防団のお知らせに登録します。</p>
-    <p class="small">初回のみ登録コードを入力してください。登録後はこの端末から自動的に利用できます。</p>
-    <input id="regcode" type="password" placeholder="登録コード">
-    <div style="height:12px"></div>
-    <button class="primary" onclick="registerDevice()">この端末を登録</button>
-    <p id="regmsg" class="small"></p>
+<div id="pastScreen" class="screen" style="display:none">
+<header class="user-header">
+  <div class="user-header-inner">
+    <h1 class="page-title">過去のお知らせ</h1>
+    <button class="admin-entry" onclick="showUserScreen()">戻る</button>
+  </div>
+</header>
+<main class="main">
+  <div id="pastNoticeList" class="notice-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
+</main>
+</div>
+
+<div id="registerScreen" class="screen" style="display:none">
+<div class="register-wrap"><div class="form-card">
+<h1 class="form-title">初回登録</h1>
+<div class="form-text">初回のみ登録コードを入力してください。<br>登録後は、この端末から自動的に利用できます。</div>
+<input id="registerCode" class="input" type="text" autocomplete="off" placeholder="登録コード">
+<button id="registerBtn" class="primary-btn" onclick="registerDevice()">この端末を登録</button>
+<button class="secondary-btn" onclick="location.reload()">戻る</button>
+<div id="registerError" class="error"></div>
+</div></div>
+</div>
+
+<div id="adminLoginScreen" class="screen" style="display:none">
+<div class="register-wrap"><div class="form-card">
+<h1 class="form-title">管理者</h1>
+<div class="form-text">管理者コードを入力してください。</div>
+<input id="adminCode" class="input" type="password" autocomplete="off" placeholder="管理者コード">
+<button id="adminLoginBtn" class="primary-btn" onclick="loginAdmin()">管理画面へ</button>
+<button class="secondary-btn" onclick="showUserScreen()">戻る</button>
+<div id="adminError" class="error"></div>
+</div></div>
+</div>
+
+<div id="adminScreen" class="admin-screen">
+<header class="admin-header"><div class="admin-header-inner">
+<div class="admin-title">管理画面</div>
+<button class="back-btn" onclick="showUserScreen()">利用画面へ戻る</button>
+</div></header>
+<main class="admin-main">
+<div class="panel">
+<div class="panel-title">お知らせ登録・編集</div>
+<div class="form-grid">
+<div class="field"><label>掲載日</label><input id="fDate" class="input" type="date"></div>
+<div class="field">
+  <label>期日</label>
+  <div style="display:flex;gap:8px;align-items:center">
+    <input id="fDue" class="input" type="date" style="flex:1">
+    <label class="check" style="margin:0;white-space:nowrap">
+      <input id="fNoDue" type="checkbox" onchange="toggleNoDue()"> 無期限
+    </label>
   </div>
 </div>
+</div>
+<div class="field" style="margin-top:9px"><label>タイトル</label><input id="fTitle" class="input" type="text" maxlength="100" placeholder="例：訓練のお知らせ"></div>
+<div class="field" style="margin-top:9px"><label>本文</label><textarea id="fBody" class="textarea" placeholder="お知らせ内容"></textarea></div>
+<label class="check"><input id="fImportant" type="checkbox"> 重要なお知らせ</label>
+<div class="field" style="margin-top:12px"><label>添付ファイル（任意）</label>
+<div id="currentFileArea" style="display:none;margin:7px 0;padding:9px 11px;background:#f3f6fa;border:1px solid #d8e0e8;border-radius:10px;font-size:13px"></div>
+<input id="fFile" class="input" type="file" accept="image/*,.pdf,application/pdf" multiple>
+<label id="removeFileLabel" class="check" style="display:none;margin-top:7px"><input id="fRemoveFile" type="checkbox"> 添付ファイルを削除</label>
+<div style="font-size:12px;color:#777;margin-top:5px">画像・PDFを複数選択できます。編集時に新しいファイルを追加すると、既存の添付も残ります。</div>
+</div>
+<button class="primary-btn" onclick="saveNotice()">保存する</button>
+<button class="secondary-btn" onclick="clearForm()">新規入力に戻す</button>
+<div id="saveError" class="error"></div>
+</div>
+
+<div class="panel">
+<div class="panel-title">登録済みお知らせ</div>
+<div id="adminNoticeList" class="admin-list"><div class="loading"><div class="spinner"></div>読み込み中…</div></div>
+</div>
+</main>
+</div>
+
+<div id="toast" class="toast"></div>
 
 <script>
-const GAS_URL = "ここにGASウェブアプリURLを入れる";
-const TOKEN_KEY = "fire_notice_device_token";
-let deviceToken = localStorage.getItem(TOKEN_KEY) || "";
+/* ★ここにGASウェブアプリURLを入れてください */
+const GAS_URL = "https://script.google.com/macros/s/AKfycbxoNoQf0sHjs3uhq56gYuxWmDvmdiheV3WI8j5BquSWUuNJI6U10Sql6oq2mvnkhcWLVA/exec";
 
-function api(url, options){
-  return fetch(url, options).then(r=>{
-    if(!r.ok) throw new Error("通信エラー");
-    return r.json();
+const DEVICE_KEY="消防団お知らせ_token";
+let adminPassword="";
+let editingIndex=-1;
+let adminNotices=[];
+
+function getToken(){return localStorage.getItem(DEVICE_KEY)||""}
+
+function showOnly(id){
+  ["userScreen","pastScreen","registerScreen","adminLoginScreen","adminScreen"].forEach(x=>{
+    document.getElementById(x).style.display="none";
   });
+  document.getElementById(id).style.display=id==="adminScreen"?"block":"block";
+}
+function showUserScreen(){showOnly("userScreen");loadUserNotices()}
+function showRegisterScreen(){showOnly("registerScreen")}
+function showAdminLogin(){showOnly("adminLoginScreen");document.getElementById("adminCode").value=""}
+function showAdminScreen(){showOnly("adminScreen");loadAdminNotices()}
+
+async function requestGet(params){
+  const url=new URL(GAS_URL);
+  Object.entries(params).forEach(([k,v])=>url.searchParams.set(k,v));
+  url.searchParams.set("_",Date.now().toString());
+  const r=await fetch(url.toString(),{cache:"no-store"});
+  if(!r.ok) throw new Error("HTTP "+r.status);
+  return await r.json();
+}
+async function requestPost(data){
+  const r=await fetch(GAS_URL,{
+    method:"POST",
+    headers:{"Content-Type":"text/plain;charset=utf-8"},
+    body:JSON.stringify(data)
+  });
+  if(!r.ok)throw new Error("HTTP "+r.status);
+  return r.json();
 }
 
 async function registerDevice(){
-  const code=document.getElementById("regcode").value.trim();
-  const msg=document.getElementById("regmsg");
-  if(!code){msg.textContent="登録コードを入力してください。";return}
-  msg.textContent="登録中...";
+  const code=document.getElementById("registerCode").value.trim();
+  const err=document.getElementById("registerError");
+  err.textContent="";
+  if(!code){err.textContent="登録コードを入力してください。";return}
+  const btn=document.getElementById("registerBtn");btn.disabled=true;btn.textContent="登録中…";
   try{
-    const r=await api(GAS_URL,{
-      method:"POST",
-      headers:{"Content-Type":"text/plain;charset=utf-8"},
-      body:JSON.stringify({action:"register",code})
-    });
-    if(!r.ok) throw new Error(r.message||"登録できませんでした");
-    deviceToken=r.token;
-    localStorage.setItem(TOKEN_KEY,deviceToken);
-    document.getElementById("registerOverlay").style.display="none";
-    loadNotices();
-  }catch(e){msg.textContent=e.message||"登録に失敗しました。"}
+    const res=await requestPost({action:"register",code});
+    if(!res.ok)throw new Error(res.message||"登録に失敗しました。");
+    localStorage.setItem(DEVICE_KEY,res.token);
+    showUserScreen();
+  }catch(e){err.textContent=e.message||"通信に失敗しました。"}
+  finally{btn.disabled=false;btn.textContent="この端末を登録"}
 }
 
-async function loadNotices(){
-  if(!deviceToken)return;
+function todayYmd(){
+  const d=new Date();
+  const y=d.getFullYear();
+  const m=String(d.getMonth()+1).padStart(2,"0");
+  const day=String(d.getDate()).padStart(2,"0");
+  return `${y}-${m}-${day}`;
+}
+
+function showPastNotices(){
+  showOnly("pastScreen");
+  loadPastNotices();
+}
+
+async function loadPastNotices(){
+  const list=document.getElementById("pastNoticeList");
+  const token=getToken();
+  if(!token){showRegisterScreen();return}
+  list.innerHTML='<div class="loading"><div class="spinner"></div>読み込み中…</div>';
   try{
-    const r=await api(GAS_URL+"?action=list&token="+encodeURIComponent(deviceToken));
-    if(!r.ok){
-      localStorage.removeItem(TOKEN_KEY);
-      deviceToken="";
-      document.getElementById("registerOverlay").style.display="flex";
-      return;
+    const res=await requestGet({action:"list",token});
+    if(!res.ok){
+      if((res.message||"").includes("登録されていません")){localStorage.removeItem(DEVICE_KEY);showRegisterScreen();return}
+      throw new Error(res.message||"取得失敗");
     }
-    renderNotices(r.notices||[]);
+    renderPastNotices(res.notices||[]);
   }catch(e){
-    document.getElementById("noticeList").innerHTML='<div class="empty">お知らせを取得できませんでした。</div>';
+    list.innerHTML='<div class="empty">過去のお知らせを取得できませんでした。<br><button class="secondary-btn" style="max-width:180px" onclick="loadPastNotices()">再読み込み</button></div>';
   }
 }
 
-function getDueClass(n){
-  if(!n.soon || !n.due) return "";
-  const d=new Date(n.due+"T00:00:00");
-  const now=new Date();
-  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const diff=Math.round((d-today)/86400000);
-  if(diff<0 || diff>3)return "";
-  return "soon-"+diff;
-}
-function getDueText(n){
-  if(!n.due)return "";
-  const d=new Date(n.due+"T00:00:00");
-  const now=new Date();
-  const today=new Date(now.getFullYear(),now.getMonth(),now.getDate());
-  const diff=Math.round((d-today)/86400000);
-  if(diff>=0 && diff<=3) return diff===0 ? "本日が期日" : "あと"+diff+"日";
-  return "期日："+n.due;
+function renderPastNotices(arr){
+  const today=todayYmd();
+  const past=arr.filter(n=>n.due && n.due<today).sort((a,b)=>{
+    const ad=a.date||"0000-00-00",bd=b.date||"0000-00-00";
+    return ad===bd?0:(ad>bd?-1:1);
+  });
+  const list=document.getElementById("pastNoticeList");
+  if(!past.length){list.innerHTML='<div class="empty">過去のお知らせはありません。</div>';return}
+  list.innerHTML=past.map((n,i)=>renderNoticeCard(n,i,true)).join("");
 }
 
-function renderNotices(list){
-  const root=document.getElementById("noticeList");
-  if(!list.length){
-    root.innerHTML='<div class="empty">現在、お知らせはありません。</div>';
+async function loadUserNotices(){
+  const list=document.getElementById("noticeList");
+  const token=getToken();
+  if(!token){showRegisterScreen();return}
+  list.innerHTML='<div class="loading"><div class="spinner"></div>読み込み中…</div>';
+  try{
+    const res=await requestGet({action:"list",token});
+    if(!res.ok){
+      if((res.message||"").includes("登録されていません")){localStorage.removeItem(DEVICE_KEY);showRegisterScreen();return}
+      throw new Error(res.message||"取得失敗");
+    }
+    renderUserNotices(res.notices||[]);
+  }catch(e){
+    list.innerHTML='<div class="empty">お知らせを取得できませんでした。<br><button class="secondary-btn" style="max-width:180px" onclick="loadUserNotices()">再読み込み</button></div>';
+  }
+}
+
+function renderNoticeCard(n,i,isPast=false){
+  const urgent=!isPast && !!n.soon,expired=!!(n.due&&daysUntil(n.due)<0);
+  let badges="";
+  if(n.important)badges+='<span class="badge badge-important">重要</span>';
+  const attachments=Array.isArray(n.files)&&n.files.length?n.files:(n.fileId?[{id:n.fileId,name:n.fileName||"添付ファイル",mimeType:n.mimeType||""}]:[]);
+  if(attachments.length)badges+='<span class="attachment-badge" title="添付ファイルあり" aria-label="添付ファイルあり">📎 '+attachments.length+'</span>';
+  if(urgent)badges+=`<span class="badge badge-urgent">${daysUntil(n.due)===0?"本日期限":"あと"+daysUntil(n.due)+"日"}</span>`;
+  if(expired)badges+='<span class="badge badge-expired">期限終了</span>';
+  const preview=attachments.map((f,j)=>`<div class="file-download-box"><span class="file-download-icon">${String(f.name||"").toLowerCase().endsWith(".pdf")?"PDF":"FILE"}</span><div style="flex:1;min-width:0;overflow-wrap:anywhere;font-size:13px">${esc(f.name||"添付ファイル")}<br><button type="button" class="file-download-btn file-download-initial" data-file-id="${esc(f.id)}" data-file-name="${esc(f.name||"添付ファイル")}" onclick="downloadPrivateFile(event,this)">ダウンロード</button></div></div>`).join("");
+  const detailId=`notice-detail-${isPast?"past-":""}${i}`;
+  const previewId="null";
+  const period=(n.date||n.due)?`<div class="notice-period">${n.date?"掲載日："+esc(n.date):""}${n.date&&n.due?"　":""}${n.due?"期日："+esc(n.due):"期日：無期限"}</div>`:"";
+  return `<article class="notice-card ${urgent?"urgent ":""}${expired?"expired":""}">
+      <button type="button" class="notice-summary-btn" onclick="toggleNoticeById('${detailId}',this,${previewId})">
+        <span class="notice-summary"><span class="notice-summary-main">
+          <span class="notice-top" style="margin-bottom:4px"><span class="notice-date">${esc(n.date||"")}</span><span class="notice-status">${badges}</span></span>
+          <span class="notice-title" style="display:block;margin-bottom:0">${esc(n.title)}</span>
+        </span><span class="notice-chevron" aria-hidden="true">⌄</span></span>
+      </button>
+      <div id="${detailId}" class="notice-details">
+        ${n.body?`<div class="notice-body">${esc(n.body)}</div>`:""}${preview}${period}
+      </div>
+    </article>`;
+}
+
+function renderUserNotices(arr){
+  const today=todayYmd();
+  const current=arr.filter(n=>!n.due || n.due>=today);
+  const list=document.getElementById("noticeList");
+  if(!current.length){
+    list.innerHTML='<div class="empty">現在、お知らせはありません。</div>';
     return;
   }
-  root.innerHTML=list.map(n=>{
-    const dueClass=getDueClass(n);
-    const isSoon=!!dueClass;
-    const soonBadge=isSoon?'<span class="badge soon">期日間近</span>':'';
-    const important=n.important?'<span class="badge important">重要</span>':'';
-    const attachments=(n.files&&n.files.length)?n.files:(n.fileId?[{id:n.fileId,name:n.fileName||"添付ファイルを開く"}]:[]);
-    const file=attachments.length?`<div class="attach">${attachments.map((f,j)=>`<button onclick="event.stopPropagation();openPrivateFile('${escapeAttr(f.id)}')">資料 ${j+1}：${escapeHtml(f.name||"添付ファイルを開く")}</button>`).join("")}</div>`:"";
-    return `<article class="card notice ${dueClass}" onclick="this.classList.toggle('open')">
-      <div class="notice-top">
-        <div class="badges">${soonBadge}${important}</div>
-        <div class="date">${escapeHtml(n.date||"")}</div>
-      </div>
-      <div class="title">${escapeHtml(n.title||"")}</div>
-      ${n.due?`<div class="due-line">${escapeHtml(getDueText(n))}</div>`:""}
-      <div class="arrow">›</div>
-      <div class="body">${escapeHtml(n.body||"")}${file}</div>
-    </article>`;
-  }).join("");
+  const sorted=[...current].sort((a,b)=>{
+    const au=!!a.soon,bu=!!b.soon;
+    if(au&&!bu)return -1;if(!au&&bu)return 1;
+    if(au&&bu){const ad=a.due||"9999-12-31",bd=b.due||"9999-12-31";if(ad!==bd)return ad<bd?-1:1;}
+    const ad=a.date||"0000-00-00",bd=b.date||"0000-00-00";
+    if(ad!==bd)return ad>bd?-1:1;
+    return 0;
+  });
+  list.innerHTML=sorted.map((n,i)=>renderNoticeCard(n,i,false)).join("");
 }
 
-async function openPrivateFile(id){
+function toggleNoticeById(id,btn,previewId){
+  const detail=document.getElementById(id);
+  if(!detail)return;
+  const card=btn.closest(".notice-card");
+  const isOpen=card.classList.toggle("open");
+  detail.style.display=isOpen?"block":"none";
+  btn.setAttribute("aria-expanded",isOpen?"true":"false");
+}
+
+async function openPrivateFile(e,id,name){
+  e.preventDefault();
+  e.stopPropagation();
   try{
-    const r=await api(GAS_URL+"?action=file&token="+encodeURIComponent(deviceToken)+"&id="+encodeURIComponent(id));
-    if(!r.ok)throw new Error(r.message||"ファイルを取得できませんでした");
-    const bin=atob(r.data);
-    const bytes=new Uint8Array(bin.length);
-    for(let i=0;i<bin.length;i++)bytes[i]=bin.charCodeAt(i);
-    const blob=new Blob([bytes],{type:r.mimeType||"application/octet-stream"});
+      const res=await requestGet({action:"file",id,token:getToken()});
+    if(!res.ok)throw new Error(res.message||"ファイル取得失敗");
+    const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
+    const blob=new Blob([bytes],{type:res.mimeType||"application/octet-stream"});
     const url=URL.createObjectURL(blob);
-    window.open(url,"_blank");
-  }catch(e){alert(e.message||"ファイルを開けませんでした")}
+    const a=document.createElement("a");a.href=url;a.download=res.fileName||name;a.target="_blank";a.click();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(e){console.error("ファイル取得エラー:",e)}
 }
 
-function showAdmin(){
-  document.getElementById("adminOverlay").style.display="flex";
-  document.getElementById("adminpwOverlay").value="";
-  document.getElementById("adminmsg").textContent="";
-  setTimeout(()=>document.getElementById("adminpwOverlay").focus(),50);
-}
-function hideAdmin(){document.getElementById("adminOverlay").style.display="none"}
-
-async function openAdmin(){
-  const pw=document.getElementById("adminpwOverlay").value.trim();
-  const msg=document.getElementById("adminmsg");
-  if(!pw){msg.textContent="パスワードを入力してください。";return}
-  msg.textContent="確認中...";
+async function downloadPrivateFile(e,btn){
+  e.preventDefault();
+  e.stopPropagation();
+  if(btn.dataset.busy==="1") return;
+  const fileId=btn.dataset.fileId;
+  const fileName=btn.dataset.fileName||"添付ファイル";
+  if(!fileId) return;
+  const original=btn.innerHTML;
+  btn.dataset.busy="1"; btn.disabled=true; btn.innerHTML="⏳ 準備中…";
   try{
-    const r=await api(GAS_URL+"?action=login&password="+encodeURIComponent(pw));
-    if(!r.ok)throw new Error("パスワードが違います");
-    document.getElementById("adminpw").value=pw;
-    document.getElementById("admin").style.display="block";
-    hideAdmin();
-    loadAdminList();
-    document.getElementById("admin").scrollIntoView({behavior:"smooth"});
-  }catch(e){msg.textContent=e.message||"認証に失敗しました。"}
+    const res=await requestGet({action:"file",id:fileId,token:getToken()});
+    if(!res || !res.ok || !res.data) throw new Error((res&&res.message)||"ファイル取得失敗");
+    const mime=res.mimeType||"application/octet-stream";
+    const name=res.fileName||fileName;
+    const bytes=Uint8Array.from(atob(res.data),c=>c.charCodeAt(0));
+    const blob=new Blob([bytes],{type:mime});
+    const url=URL.createObjectURL(blob);
+    const a=document.createElement("a"); a.href=url; a.download=name;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(()=>URL.revokeObjectURL(url),60000);
+  }catch(err){
+    console.error("添付ファイル取得エラー:",err);
+    showToast("添付ファイルを取得できませんでした");
+  }finally{
+    btn.disabled=false; btn.dataset.busy="0"; btn.innerHTML=original;
+  }
 }
 
-function closeAdmin(){
-  document.getElementById("admin").style.display="none";
+async function loginAdmin(){
+  const pw=document.getElementById("adminCode").value.trim();
+  const err=document.getElementById("adminError");err.textContent="";
+  if(!pw){err.textContent="管理者コードを入力してください。";return}
+  const btn=document.getElementById("adminLoginBtn");btn.disabled=true;btn.textContent="確認中…";
+  try{
+    const res=await requestGet({action:"login",password:pw});
+    if(!res.ok)throw new Error("管理者コードが違います。");
+    adminPassword=pw;showAdminScreen();
+  }catch(e){err.textContent=e.message||"通信に失敗しました。"}
+  finally{btn.disabled=false;btn.textContent="管理画面へ"}
+}
+
+async function loadAdminNotices(){
+  const list=document.getElementById("adminNoticeList");
+  list.innerHTML='<div class="loading"><div class="spinner"></div>読み込み中…</div>';
+  try{
+    const res=await requestGet({action:"listAdmin",password:adminPassword});
+    if(!res.ok)throw new Error(res.message||"取得失敗");
+    adminNotices=res.notices||[];
+    renderAdminNotices();
+  }catch(e){list.innerHTML='<div class="empty">読み込みに失敗しました。</div>'}
+}
+
+function renderAdminNotices(){
+  const list=document.getElementById("adminNoticeList");
+  if(!adminNotices.length){list.innerHTML='<div class="empty">登録されたお知らせはありません。</div>';return}
+  // 管理画面は掲載日の新しい順（今日→昨日→それ以前）
+  const sorted=adminNotices.map((n,i)=>({n:n,index:i})).sort((a,b)=>{
+    const ad=a.n.date||"0000-00-00", bd=b.n.date||"0000-00-00";
+    if(ad!==bd)return ad>bd?-1:1;
+    return 0;
+  });
+  list.innerHTML=sorted.map(({n,index:i})=>`
+    <div class="admin-item ${n.soon?"urgent":""}">
+      <div class="admin-item-title">${esc(n.title)}</div>
+      <div class="admin-item-meta">掲載 ${esc(n.date||"-")}　期日 ${n.due?esc(n.due):"無期限"}${n.important?"　重要":""}</div>
+      <div class="admin-actions">
+        <button class="small-btn" onclick="editNotice(${i})">編集</button>
+        <button class="small-btn delete" onclick="deleteNotice(${i})">削除</button>
+      </div>
+    </div>`).join("");
+}
+
+function resetCurrentFileUI(){
+  const a=document.getElementById("currentFileArea");
+  const l=document.getElementById("removeFileLabel");
+  const r=document.getElementById("fRemoveFile");
+  if(a){a.style.display="none";a.textContent="";}
+  if(l)l.style.display="none";
+  if(r)r.checked=false;
+}
+function showCurrentFileUI(files){
+  const a=document.getElementById("currentFileArea");
+  const l=document.getElementById("removeFileLabel");
+  const r=document.getElementById("fRemoveFile");
+  const names=Array.isArray(files)?files.map(f=>f.name||"添付ファイル"):[String(files||"添付ファイル")];
+  if(a){a.style.display="block";a.innerHTML="📎 <strong>現在の添付ファイル：</strong><ul style=\"margin:6px 0 0;padding-left:22px\">"+names.map(n=>"<li>"+esc(n)+"</li>").join("")+"</ul>";}
+  if(l)l.style.display="block";
+  if(r)r.checked=false;
+}
+
+function editNotice(i){
+  const n=adminNotices[i];editingIndex=(n.row||0)-2;
+  document.getElementById("fDate").value=n.date||"";
+  document.getElementById("fDue").value=n.due||"";
+  document.getElementById("fNoDue").checked=!n.due;
+  toggleNoDue();
+  document.getElementById("fTitle").value=n.title||"";
+  document.getElementById("fBody").value=n.body||"";
+  document.getElementById("fImportant").checked=!!n.important;
+  document.getElementById("fFile").value="";
+  const existingFiles=Array.isArray(n.files)&&n.files.length?n.files:(n.fileId?[{id:n.fileId,name:n.fileName||"添付ファイル"}]:[]);
+  if(existingFiles.length) showCurrentFileUI(existingFiles); else resetCurrentFileUI();
+  document.getElementById("saveError").textContent="";
   window.scrollTo({top:0,behavior:"smooth"});
 }
 
-async function loadAdminList(){
-  const pw=document.getElementById("adminpw").value;
-  const r=await api(GAS_URL+"?action=listAdmin&password="+encodeURIComponent(pw));
-  if(!r.ok){alert(r.message||"取得できません");return}
-  document.getElementById("adminList").innerHTML=(r.notices||[]).map((n,i)=>{
-    const dueClass=getDueClass(n);
-    return `<div class="admin-item ${dueClass}">
-      <div class="admin-item-title">${escapeHtml(n.title||"")}</div>
-      <div class="small">${escapeHtml(n.date||"")}${n.due?"　期日："+escapeHtml(n.due):""}</div>
-      <div class="admin-actions">
-        <button class="secondary" onclick='editNotice(${i},${JSON.stringify(n)})'>編集</button>
-        <button class="secondary" onclick="deleteNotice(${i})">削除</button>
-      </div>
-    </div>`;
-  }).join("");
-}
-
-function editNotice(i,n){
-  document.getElementById("editIndex").value=i;
-  document.getElementById("date").value=n.date||"";
-  document.getElementById("due").value=n.due||"";
-  document.getElementById("title").value=n.title||"";
-  document.getElementById("body").value=n.body||"";
-  document.getElementById("important").checked=!!n.important;
-  const current=(n.files&&n.files.length)?n.files.map(f=>f.name).join("、"):(n.fileName||"");
-  document.getElementById("fileinfo").textContent=current?"現在の添付: "+current+"（新しいファイルを選ぶと追加されます）":"PDF・画像を複数選択できます。";
-  document.getElementById("admin").scrollIntoView({behavior:"smooth"});
+function toggleNoDue(){
+  const noDue=document.getElementById("fNoDue").checked;
+  const due=document.getElementById("fDue");
+  due.disabled=noDue;
+  if(noDue) due.value="";
 }
 
 function clearForm(){
-  ["date","due","title","body","editIndex"].forEach(id=>document.getElementById(id).value="");
-  document.getElementById("important").checked=false;
-  document.getElementById("file").value="";
-  document.getElementById("fileinfo").textContent="PDF・画像を複数選択できます。";
+  editingIndex=-1;
+  document.getElementById("fDate").value=localDate();
+  document.getElementById("fNoDue").checked=true;
+  toggleNoDue();
+  document.getElementById("fDue").value="";
+  document.getElementById("fNoDue").checked=true;
+  toggleNoDue();
+  document.getElementById("fTitle").value="";
+  document.getElementById("fBody").value="";
+  document.getElementById("fImportant").checked=false;
+  document.getElementById("fFile").value="";
+  resetCurrentFileUI();
+  document.getElementById("saveError").textContent="";
 }
 
 async function saveNotice(){
-  const pw=document.getElementById("adminpw").value;
-  const selectedFiles=Array.from(document.getElementById("file").files||[]);
-  const files=[];
-  for(const f of selectedFiles){
-    const buf=await f.arrayBuffer();
-    let binary="";
-    const bytes=new Uint8Array(buf),chunk=0x8000;
-    for(let i=0;i<bytes.length;i+=chunk)binary+=String.fromCharCode(...bytes.subarray(i,i+chunk));
-    files.push({name:f.name,mimeType:f.type||"application/octet-stream",data:btoa(binary)});
-  }
-  const payload={
-    action:"save",password:pw,
-    index:document.getElementById("editIndex").value,
-    date:document.getElementById("date").value,
-    due:document.getElementById("due").value,
-    title:document.getElementById("title").value,
-    body:document.getElementById("body").value,
-    important:document.getElementById("important").checked,
-    files:files
+  const err=document.getElementById("saveError");err.textContent="";
+  const title=document.getElementById("fTitle").value.trim();
+  if(!title){err.textContent="タイトルを入力してください。";return}
+
+  const noDue=document.getElementById("fNoDue").checked;
+  const data={
+    action:"save",
+    password:adminPassword,
+    index:editingIndex<0?"":editingIndex,
+    date:document.getElementById("fDate").value,
+    due:noDue?"":document.getElementById("fDue").value,
+    title,
+    body:document.getElementById("fBody").value,
+    important:document.getElementById("fImportant").checked,
+    removeFile:document.getElementById("fRemoveFile")?.checked===true
   };
+
+  const selectedFiles=Array.from(document.getElementById("fFile").files||[]);
+
   try{
-    const r=await api(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify(payload)});
-    if(!r.ok)throw new Error(r.message||"保存できませんでした");
-    alert("保存しました");
-    clearForm();loadAdminList();loadNotices();
-  }catch(e){alert(e.message||"保存に失敗しました")}
+    showToast(editingIndex<0?"保存の準備中…":"更新の準備中…");
+    let totalSize=0;
+    for(const file of selectedFiles){
+      totalSize+=file.size;
+      if(file.size>15*1024*1024){
+        err.textContent=`「${file.name}」は15MBを超えています。1ファイル15MB以下にしてください。`;
+        showToast("保存できません"); return;
+      }
+      if(!(file.type||"").startsWith("image/") && !file.name.toLowerCase().endsWith(".pdf")){
+        err.textContent=`「${file.name}」は添付できません。画像またはPDFを選択してください。`;
+        showToast("保存できません"); return;
+      }
+    }
+    if(totalSize>25*1024*1024){
+      err.textContent="添付ファイルの合計は25MB以下にしてください。";
+      showToast("保存できません"); return;
+    }
+    if(selectedFiles.length){
+      showToast("添付ファイルを準備中…");
+      data.files=[];
+      for(const file of selectedFiles){
+        data.files.push({
+          name:file.name,
+          mimeType:file.type||"application/octet-stream",
+          data:await fileToBase64(file)
+        });
+      }
+    }
+
+    showToast(editingIndex<0?"保存しています…":"更新しています…");
+    const res=await requestPost(data);
+    if(!res.ok)throw new Error(res.message||"保存失敗");
+
+    showToast(editingIndex<0?"保存しました":"更新しました");
+    clearForm();
+    await loadAdminNotices();
+
+  }catch(e){
+    console.error(e);
+    err.textContent=e.message||"保存に失敗しました。";
+    showToast("保存に失敗しました");
+  }
 }
 
 async function deleteNotice(i){
-  if(!confirm("このお知らせを削除しますか？"))return;
-  const pw=document.getElementById("adminpw").value;
+  const n=adminNotices[i];
+  if(!confirm(`「${n.title}」を削除しますか？`))return;
   try{
-    const r=await api(GAS_URL,{method:"POST",headers:{"Content-Type":"text/plain;charset=utf-8"},body:JSON.stringify({action:"delete",password:pw,index:i})});
-    if(!r.ok)throw new Error(r.message||"削除できませんでした");
-    loadAdminList();loadNotices();
-  }catch(e){alert(e.message||"削除に失敗しました")}
+    showToast("削除しています…");
+    const res=await requestPost({action:"delete",password:adminPassword,index:(n.row||0)-2});
+    if(!res.ok)throw new Error(res.message||"削除失敗");
+    showToast("削除しました");await loadAdminNotices();
+  }catch(e){showToast(e.message||"削除に失敗しました。")}
 }
 
-document.getElementById("file").addEventListener("change",function(){
-  const chosen=Array.from(this.files||[]);
-  document.getElementById("fileinfo").textContent=chosen.length?chosen.length+"件選択中："+chosen.map(f=>f.name).join("、"):"PDF・画像を複数選択できます。";
+function fileToBase64(file){
+  return new Promise((resolve,reject)=>{
+    const r=new FileReader();r.onload=()=>resolve(String(r.result).split(",")[1]);r.onerror=reject;r.readAsDataURL(file);
+  });
+}
+function daysUntil(s){
+  const d=new Date(s+"T00:00:00"),t=new Date();t.setHours(0,0,0,0);
+  return Math.round((d-t)/86400000);
+}
+function localDate(){
+  const d=new Date();return d.getFullYear()+"-"+String(d.getMonth()+1).padStart(2,"0")+"-"+String(d.getDate()).padStart(2,"0");
+}
+function esc(v){
+  return String(v??"").replace(/&/g,"&amp;").replace(/</g,"&lt;").replace(/>/g,"&gt;").replace(/"/g,"&quot;").replace(/'/g,"&#039;");
+}
+let toastTimer;
+function showToast(msg){
+  const t=document.getElementById("toast");t.textContent=msg;t.classList.add("show");
+  clearTimeout(toastTimer);toastTimer=setTimeout(()=>t.classList.remove("show"),2200);
+}
+
+document.addEventListener("DOMContentLoaded",()=>{
+  if(GAS_URL==="YOUR_GAS_WEB_APP_URL"){
+    document.getElementById("noticeList").innerHTML='<div class="empty">index.htmlのGAS_URLに、GASウェブアプリURLを設定してください。</div>';
+    return;
+  }
+  if(getToken())showUserScreen();else showRegisterScreen();
+  document.getElementById("fDate").value=localDate();
+  document.getElementById("fNoDue").checked=true;
+  toggleNoDue();
 });
-function escapeHtml(s){
-  return String(s??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]));
-}
-function escapeAttr(s){return escapeHtml(s).replace(/`/g,"&#96;")}
-
-if(!GAS_URL.includes("ここに"))loadNotices();
 </script>
 </body>
 </html>
